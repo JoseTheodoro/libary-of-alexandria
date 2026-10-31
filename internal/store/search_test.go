@@ -84,11 +84,17 @@ func TestSearchRejectsStaleIndexAndInvalidLocator(t *testing.T) {
 	if _, err = s.Activate(ctx, source.ID, imported.ExtractionID, chunks.ProfileID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = s.db.ExecContext(ctx, `UPDATE document_units SET locator_json='{}'`); err != nil {
+	if _, err = s.db.ExecContext(ctx, `UPDATE document_units SET locator_json=json_set(locator_json,'$.page',2)`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = s.Search(ctx, "ReadFile", "", 5); err == nil {
 		t.Fatal("localizador inválido aceito")
+	}
+	if _, err = s.Verify(ctx); err == nil {
+		t.Fatal("verificação aceitou página incompatível")
+	}
+	if _, err = s.db.ExecContext(ctx, `UPDATE document_units SET locator_json=json_set(locator_json,'$.page',1)`); err != nil {
+		t.Fatal(err)
 	}
 	if _, err = s.db.ExecContext(ctx, `DELETE FROM fragment_fts`); err != nil {
 		t.Fatal(err)

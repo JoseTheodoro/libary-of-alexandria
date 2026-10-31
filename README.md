@@ -30,6 +30,7 @@ são hipóteses de capacidade. Gates propostos não representam resultados obtid
 - [M1 — Knowledge Foundation](docs/milestones/M1.md): escopo aprovado e critérios de aceite.
 - [Catálogo de fontes](docs/CATALOG.md): contrato JSON, comandos e limites de validação.
 - [SQLite](docs/SQLITE.md): driver, inicialização, migrations e escopo implementado.
+- [Avaliação de M1-03](docs/ACCEPTANCE.md): gabarito privado e medição de recuperação.
 - [AGENTS.md](AGENTS.md): instruções persistentes para Codex, OpenCode e futuras sessões.
 
 O contexto de produto parte da

@@ -130,7 +130,7 @@ func inspectIndex(ctx context.Context, tx *sql.Tx, rebuild bool) (IndexResult, e
 		if err := enc.Encode([]string{d.source, d.extraction, d.profile, d.title}); err != nil {
 			return result, err
 		}
-		units, err := tx.QueryContext(ctx, `SELECT u.unit_id,u.text,u.locator_json,f.id,f.stable_id,f.start_byte,f.end_byte FROM document_units u LEFT JOIN fragments f ON f.extraction_id=u.extraction_id AND f.unit_id=u.unit_id AND f.profile_id=? WHERE u.extraction_id=? ORDER BY u.ordinal,f.id`, d.profile, d.extraction)
+		units, err := tx.QueryContext(ctx, `SELECT u.unit_id,u.ordinal,u.text,u.locator_json,f.id,f.stable_id,f.start_byte,f.end_byte FROM document_units u LEFT JOIN fragments f ON f.extraction_id=u.extraction_id AND f.unit_id=u.unit_id AND f.profile_id=? WHERE u.extraction_id=? ORDER BY u.ordinal,f.id`, d.profile, d.extraction)
 		if err != nil {
 			return result, err
 		}
@@ -138,9 +138,10 @@ func inspectIndex(ctx context.Context, tx *sql.Tx, rebuild bool) (IndexResult, e
 		lastUnit := ""
 		for units.Next() {
 			var unit, text, locator string
+			var ordinal int
 			var id, start, end sql.NullInt64
 			var stable sql.NullString
-			if err := units.Scan(&unit, &text, &locator, &id, &stable, &start, &end); err != nil {
+			if err := units.Scan(&unit, &ordinal, &text, &locator, &id, &stable, &start, &end); err != nil {
 				units.Close()
 				return result, err
 			}
@@ -148,9 +149,14 @@ func inspectIndex(ctx context.Context, tx *sql.Tx, rebuild bool) (IndexResult, e
 				units.Close()
 				return result, fmt.Errorf("fragmentos ou texto da unidade inválidos")
 			}
-			if _, err := parseLocator(locator, text); err != nil {
+			loc, err := parseLocator(locator, text)
+			if err != nil {
 				units.Close()
 				return result, err
+			}
+			if ordinal < 1 || *loc.Page != ordinal || unit != fmt.Sprintf("page-%06d", ordinal) {
+				units.Close()
+				return result, fmt.Errorf("localizador não corresponde à unidade")
 			}
 			lastUnit = unit
 			if text == "" && !id.Valid {

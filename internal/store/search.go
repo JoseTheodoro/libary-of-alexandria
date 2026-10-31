@@ -62,11 +62,6 @@ func (s *Store) Search(ctx context.Context, query, source string, limit int) ([]
 	if !utf8.ValidString(query) || strings.ContainsRune(query, '\x00') || len(strings.Fields(query)) == 0 || limit < 1 || limit > 100 {
 		return nil, fmt.Errorf("consulta ou limite inválido")
 	}
-	terms := strings.Fields(query)
-	for i, term := range terms {
-		terms[i] = `"` + strings.ReplaceAll(term, `"`, `""`) + `"`
-	}
-	expression := strings.Join(terms, " AND ")
 	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return nil, err
@@ -75,6 +70,18 @@ func (s *Store) Search(ctx context.Context, query, source string, limit int) ([]
 	if _, err := inspectIndex(ctx, tx, false); err != nil {
 		return nil, fmt.Errorf("índice inválido: %w", err)
 	}
+	return searchTx(ctx, tx, query, source, limit)
+}
+
+func searchTx(ctx context.Context, tx *sql.Tx, query, source string, limit int) ([]SearchHit, error) {
+	if !utf8.ValidString(query) || strings.ContainsRune(query, '\x00') || len(strings.Fields(query)) == 0 || limit < 1 || limit > 100 {
+		return nil, fmt.Errorf("consulta ou limite inválido")
+	}
+	terms := strings.Fields(query)
+	for i, term := range terms {
+		terms[i] = `"` + strings.ReplaceAll(term, `"`, `""`) + `"`
+	}
+	expression := strings.Join(terms, " AND ")
 	rows, err := tx.QueryContext(ctx, `SELECT s.id,s.title,s.authors_json,s.edition,e.source_sha256,e.id,f.stable_id,u.unit_id,u.locator_json,f.start_byte,f.end_byte,u.text,bm25(fragment_fts,1,1)
 		FROM fragment_fts JOIN fragments f ON f.id=fragment_fts.rowid
 		JOIN active_documents a ON a.extraction_id=f.extraction_id AND a.profile_id=f.profile_id

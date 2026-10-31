@@ -147,6 +147,8 @@ automaticamente nos diagnósticos exibidos.
 Uma verificação operacional no banco privado cobriu nove fontes e 4.154 fragmentos;
 duas consultas comuns e uma sem correspondência produziram saídas idênticas em
 repetições. Não representam benchmark nem comprovam os critérios de recuperação.
+O [avaliador de aceite](ACCEPTANCE.md) usa gabaritos privados revisados; a suíte
+real e sua medição ainda estão pendentes.
 
 ## Verificação
 
