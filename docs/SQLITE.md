@@ -2,8 +2,9 @@
 
 Esta etapa inicia a [issue #13](https://github.com/JoseTheodoro/libary-of-alexandria/issues/13).
 Implementa inicialização explícita de um banco local, schema versionado e
-importação transacional dos artefatos de #12 e geração inicial de fragmentos. Ativação de revisões,
-reconstrução do índice, pesquisa e consultas de aceite ainda serão implementados.
+importação transacional dos artefatos de #12, geração inicial de fragmentos e
+ativação com reconstrução transacional do índice. Pesquisa e consultas de aceite
+ainda serão implementadas.
 
 ## Decisão de driver
 
@@ -45,9 +46,8 @@ preservam o banco existente. Não há migração reversa automática nesta etapa
 O schema contém fontes e revisões, extrações, unidades de documento,
 seções, diagnósticos, perfis e fragmentos, seleção ativa e estado do índice. O
 conteúdo extraído pertence às tabelas canônicas; `fragment_fts` é uma projeção
-FTS5 derivada e sua chave inteira corresponde à de `fragments`. O teste confirma
-que excluir entradas do índice não altera o texto canônico. A manutenção e
-reconstrução consistente dessa projeção ainda serão implementadas em #13.
+FTS5 derivada e sua chave inteira corresponde à de `fragments`. Excluir entradas
+do índice não altera o texto canônico.
 
 ## Importação canônica
 
@@ -96,7 +96,28 @@ dos quais 99 excedem a meta; a repetição preservou as contagens. A integridade
 e as foreign keys passaram. Esses números descrevem a execução local, não são
 uma avaliação de qualidade de recuperação. A configuração ainda deve ser avaliada
 antes do aceite. Fragmentação não ativa revisões nem atualiza a projeção FTS5;
-ativação, reconstrução, pesquisa e avaliação continuam pendentes.
+pesquisa e avaliação continuam pendentes.
+
+## Ativação e índice derivado
+
+```sh
+go run ./cmd/alexandria store activate --db data/alexandria.sqlite --source ID --extraction ID --profile ID
+go run ./cmd/alexandria store rebuild --db data/alexandria.sqlite
+```
+
+O ID do perfil é retornado por `store chunk`. A ativação seleciona explicitamente
+uma extração completa por fonte e reconstrói a projeção de todas as fontes ativas
+na mesma transação. O rebuild pode ser executado separadamente e usa somente o
+conteúdo canônico. Antes de gravar o estado do índice, as operações conferem o
+perfil, a integridade dos fragmentos e seus limites; uma falha reverte tanto a
+seleção quanto a projeção. Revisões antigas permanecem no banco, fora do índice.
+O estado registra configuração e digest determinístico da seleção e dos fragmentos.
+
+No banco privado de validação, nove fontes ativas produziram 4.154 entradas
+FTS5; duas reconstruções retornaram o mesmo estado, sem alterar as 4.214 unidades
+canônicas. As verificações de integridade e foreign keys passaram. Isso valida a
+operação do índice, não a qualidade de busca ou o aceite da história. A auditoria
+de qualidade da #12 continua separada e deve ser considerada no aceite.
 
 ## Verificação
 

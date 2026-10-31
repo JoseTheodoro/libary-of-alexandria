@@ -25,6 +25,18 @@ func digest(data []byte) string {
 	return hex.EncodeToString(sum[:])
 }
 
+func fragmentID(extractionID, profileID, unit, text string) string {
+	identity, _ := json.Marshal(struct {
+		Extraction string `json:"extraction"`
+		Profile    string `json:"profile"`
+		Unit       string `json:"unit"`
+		Start      int    `json:"start"`
+		End        int    `json:"end"`
+		TextSHA256 string `json:"text_sha256"`
+	}{extractionID, profileID, unit, 0, len(text), digest([]byte(text))})
+	return digest(identity)
+}
+
 // Chunk stores exact byte ranges into canonical units without activating them.
 // Repetition verifies the existing projection instead of silently replacing it.
 func (s *Store) Chunk(ctx context.Context, extractionID string) (ChunkResult, error) {
@@ -67,18 +79,7 @@ func (s *Store) Chunk(ctx context.Context, extractionID string) (ChunkResult, er
 		if len(text) == 0 {
 			continue
 		}
-		identity, err := json.Marshal(struct {
-			Extraction string `json:"extraction"`
-			Profile    string `json:"profile"`
-			Unit       string `json:"unit"`
-			Start      int    `json:"start"`
-			End        int    `json:"end"`
-			TextSHA256 string `json:"text_sha256"`
-		}{extractionID, result.ProfileID, unit, 0, len(text), digest([]byte(text))})
-		if err != nil {
-			return result, err
-		}
-		stableID := digest(identity)
+		stableID := fragmentID(extractionID, result.ProfileID, unit, text)
 		if _, err := tx.ExecContext(ctx, `INSERT INTO fragments(stable_id,extraction_id,unit_id,profile_id,start_byte,end_byte) VALUES(?,?,?,?,?,?) ON CONFLICT DO NOTHING`, stableID, extractionID, unit, result.ProfileID, 0, len(text)); err != nil {
 			return result, err
 		}

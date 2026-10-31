@@ -19,6 +19,8 @@ const usage = `Uso:
   alexandria store init --db <arquivo.sqlite>
   alexandria store import --db <arquivo.sqlite> --catalog <catálogo.json> --source <id> --artifact <diretório>
   alexandria store chunk --db <arquivo.sqlite> --extraction <id>
+  alexandria store activate --db <arquivo.sqlite> --source <id> --extraction <id> --profile <id>
+  alexandria store rebuild --db <arquivo.sqlite>
 
 Validação local, sem alterar catálogo ou fontes. O aceite de M1 exige --require-count 9.
 `

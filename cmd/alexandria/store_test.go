@@ -44,3 +44,19 @@ func TestStoreImportRequiresExplicitExistingDatabase(t *testing.T) {
 		t.Fatalf("argumentos ausentes: code=%d", code)
 	}
 }
+
+func TestIndexCommandsRequireExistingDatabase(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "missing.sqlite")
+	for _, args := range [][]string{
+		{"store", "rebuild", "--db", path},
+		{"store", "activate", "--db", path, "--source", "s", "--extraction", "e", "--profile", "p"},
+	} {
+		var stdout, stderr bytes.Buffer
+		if code := run(args, &stdout, &stderr); code != 1 {
+			t.Fatalf("%v: código %d, stderr %s", args, code, &stderr)
+		}
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Fatalf("banco criado implicitamente: %v", err)
+		}
+	}
+}
