@@ -44,7 +44,7 @@ etapa futura.
 
 ## Uso local
 
-Com Go 1.27.3 instalado, sem dependências de módulos externos:
+Com Go 1.27.3 e as dependências do projeto disponíveis:
 
 ```sh
 go run ./cmd/alexandria catalog validate testdata/catalog/valid.json

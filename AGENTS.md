@@ -20,7 +20,7 @@ e outros agentes que nele trabalhem.
   de implementar requisitos afetados.
 - A implementação de M1 foi autorizada após o bootstrap. M1-01 (#11) passou na
   [revisão técnica local](docs/reviews/M1-01.md), com aceite das nove fontes reais.
-  A próxima história é M1-02 (#12); consulte seu status e o
+  M1-02 (#12) foi concluída; a história ativa é M1-03 (#13). Consulte seu status e o
   [plano de M1](docs/milestones/M1.md) antes de avançar. Não confunda Done da
   história com conclusão do milestone; confira o estado do código na branch usada.
 

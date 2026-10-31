@@ -8,14 +8,15 @@ comprovação de valor das etapas anteriores.
 
 ## Estado atual
 
-M1 está em execução pela história
+M1 está em execução. A história
 [M1-01 — Catalogar nove fontes técnicas e seus direitos de uso](https://github.com/JoseTheodoro/libary-of-alexandria/issues/11),
 com catálogo JSON versionado, CLI Go para validação e SHA-256, testes sintéticos e
 workflow de CI. O catálogo privado dos nove PDFs foi validado, com hashes,
 proveniência e declaração do responsável para uso não comercial em estudo e pesquisa.
 A entrega de M1-01 foi aprovada na [revisão técnica local](docs/reviews/M1-01.md).
-M1-02 possui [extração local de PDF](docs/EXTRACTION.md) e está em revisão; a
-auditoria registra limites de fidelidade. Não há banco, índice ou pesquisa.
+M1-02 possui [extração local de PDF](docs/EXTRACTION.md); a auditoria registra
+limites de fidelidade. M1-03 iniciou [SQLite e migrations](docs/SQLITE.md); ainda
+não há importação dos documentos, reconstrução de índice ou pesquisa funcional.
 M2 aguarda o gate de M1; M3–M8
 são hipóteses de capacidade. Gates propostos não representam resultados obtidos.
 
@@ -27,6 +28,7 @@ são hipóteses de capacidade. Gates propostos não representam resultados obtid
 - [Roadmap](docs/ROADMAP.md): oito milestones, dependências e gates.
 - [M1 — Knowledge Foundation](docs/milestones/M1.md): escopo aprovado e critérios de aceite.
 - [Catálogo de fontes](docs/CATALOG.md): contrato JSON, comandos e limites de validação.
+- [SQLite](docs/SQLITE.md): driver, inicialização, migrations e escopo implementado.
 - [AGENTS.md](AGENTS.md): instruções persistentes para Codex, OpenCode e futuras sessões.
 
 O contexto de produto parte da
@@ -54,8 +56,8 @@ A recuperação cross-lingual com consulta pt-BR e evidência EN será avaliada 
 
 O M1 não depende de embeddings, tradução por LLM, serviços externos ou banco vetorial.
 Containers só serão introduzidos quando houver necessidade demonstrada.
-A implementação inicial usa somente a biblioteca padrão de Go 1.27.3, versão
-registrada em `go.mod`; não há dependências de módulos externos.
+A CLI usa Go 1.27.3 e o driver puro Go `modernc.org/sqlite`, fixados em `go.mod`.
+A extração usa Python e a versão de pypdf fixada em `adapters/pdf/requirements.txt`.
 
 ## Desenvolvimento local
 
@@ -74,8 +76,9 @@ git status --short
 git diff --check
 ```
 
-A consulta ao GitHub e a preparação do runner de CI requerem rede. A CLI e os testes
-rodam offline com o toolchain instalado. `go test -race` requer suporte a cgo e um
+A consulta ao GitHub, a preparação do runner e o download inicial das dependências
+requerem rede. Com toolchain e dependências instalados, a CLI e os testes rodam
+offline. `go test -race` requer suporte a cgo e um
 compilador C no ambiente; `go test ./...` executa a suíte sem o detector de corridas.
 O workflow usa runner Linux e somente fontes sintéticas.
 
