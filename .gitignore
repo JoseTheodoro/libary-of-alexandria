@@ -1,1 +1,55 @@
+# Livros locais (inclusive extensões em maiúsculas).
+*.[pP][dD][fF]
+*.[eE][pP][uU][bB]
+
+# Dados locais, conteúdo extraído protegido e índices derivados.
+/data/
+/corpus/
+/extracted/
+/indexes/
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+
+# Segredos e configurações locais; exemplos sem segredos podem ser versionados.
+.env
+.env.*
+!.env.example
+!.env.*.example
+/secrets/
+/credentials/
+.aws/
+*.pem
+*.key
+
+# Cache e artefatos Go/Python.
+.cache/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+*.egg-info/
+/bin/
+/build/
+/dist/
+/coverage/
+coverage.out
+*.test
+*.prof
+*.log
+/artifacts/
+/tmp/
+
+# Editor e sistema operacional.
 .vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+*~
