@@ -4,7 +4,7 @@ Esta etapa inicia a [issue #13](https://github.com/JoseTheodoro/libary-of-alexan
 Implementa inicialização explícita de um banco local, schema versionado e
 importação transacional dos artefatos de #12, geração inicial de fragmentos e
 ativação com reconstrução transacional do índice e busca lexical com referências.
-As consultas de aceite ainda não foram preparadas ou medidas.
+Uma avaliação preliminar foi executada; o aceite ainda depende de revisão.
 
 ## Decisão de driver
 
@@ -147,8 +147,8 @@ automaticamente nos diagnósticos exibidos.
 Uma verificação operacional no banco privado cobriu nove fontes e 4.154 fragmentos;
 duas consultas comuns e uma sem correspondência produziram saídas idênticas em
 repetições. Não representam benchmark nem comprovam os critérios de recuperação.
-O [avaliador de aceite](ACCEPTANCE.md) usa gabaritos privados revisados; a suíte
-real e sua medição ainda estão pendentes.
+O [avaliador de aceite](ACCEPTANCE.md) utiliza gabaritos privados. Uma medição real
+preliminar foi executada, mas a revisão independente e o aceite permanecem pendentes.
 
 ## Verificação
 

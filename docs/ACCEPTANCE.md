@@ -2,8 +2,8 @@
 
 O comando `acceptance` avalia um gabarito privado previamente revisado contra o
 índice ativo. Não gera perguntas nem escolhe evidências automaticamente. A suíte
-real de 18 consultas ainda precisa ser preparada e revisada; os testes automatizados
-usam somente fontes sintéticas. Nenhuma taxa de acerto real foi medida nesta etapa.
+real foi preparada em caráter preliminar; os testes automatizados usam somente
+fontes sintéticas. Os resultados locais e suas limitações estão descritos abaixo.
 
 ## Preparação do gabarito
 
@@ -68,3 +68,32 @@ vezes com a mesma suíte e compare os relatórios antes de registrar evidência.
 A auditoria independente de qualidade de #12 e a verificação interna dos segmentos
 FTS5 permanecem pendentes no processo de aceite; a checagem atual compara a projeção
 armazenada ao canônico, como detalhado em [SQLite](SQLITE.md).
+
+## Medição preliminar local
+
+Foi preparado um gabarito privado com 18 consultas, duas por fonte, e intervalos
+identificados no texto canônico. Ele foi congelado antes de executar as buscas.
+As consultas foram formuladas após a leitura dos trechos pelo mesmo agente que
+selecionou as evidências, sem revisão independente; isso pode favorecer a baseline
+lexical e limita a interpretação da medição. Não é um benchmark independente.
+
+Duas execuções produziram relatórios idênticos, com **15/18** referências esperadas
+no Top 5 e **78 resultados** no total. Os 18 trechos esperados tiveram sequência de
+palavras normalizada coincidente com extração independente via PDFKit. Para as 78
+páginas retornadas, a comparação de sequência de palavras da página inteira com o
+PDFKit ficou em pelo menos 0,9 em 75 casos; três ficaram abaixo, com mínimo de 0,546.
+Essa comparação é indicativa, não prova fidelidade visual ou semântica, e o limite
+0,9 é um critério exploratório, não um gate aprovado.
+
+Na inspeção visual das três páginas abaixo do limiar, todas são páginas de índice
+remissivo em duas colunas. As divergências estão associadas a essas páginas; a
+inspeção não demonstra que o restante dos resultados seja semanticamente adequado.
+Os índices remissivos também mostram que uma correspondência lexical pode retornar
+uma lista de referências em vez de uma passagem explicativa, o que deve ser
+considerado ao revisar a qualidade da recuperação.
+
+O aceite **não está comprovado**: os gabaritos e a relevância dos resultados
+precisam de revisão independente, as diferenças de extração em páginas de índice
+precisam ser consideradas, e a auditoria de #12 deve ser incorporada. A medição também não
+resolve a verificação interna dos segmentos FTS5. Gabarito, relatórios e comparações
+permanecem privados em `data/`; não foram publicados trechos nem hashes das fontes.
