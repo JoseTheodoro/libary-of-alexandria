@@ -30,6 +30,10 @@ jobs:
         run: test -z "$(gofmt -l cmd internal)"
       - name: Static analysis
         run: go vet ./...
+      - name: Staticcheck
+        run: make staticcheck
+      - name: Vulnerability check
+        run: make vulncheck
       - name: Tests with race detection
         run: go test -race -count=1 ./...
       - name: Validate synthetic catalog
