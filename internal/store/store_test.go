@@ -2,7 +2,9 @@ package store
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"strings"
@@ -44,7 +46,7 @@ func TestInitPersistsAndEnablesFTS5AndForeignKeys(t *testing.T) {
 	if err := reopened.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM fragment_fts").Scan(&count); err != nil || count != 1 {
 		t.Fatalf("dados após reabertura: %d, %v", count, err)
 	}
-	if err := reopened.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM schema_migrations").Scan(&count); err != nil || count != 1 {
+	if err := reopened.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM schema_migrations").Scan(&count); err != nil || count != 2 {
 		t.Fatalf("migration duplicada: %d, %v", count, err)
 	}
 }
@@ -55,7 +57,7 @@ func TestInitRejectsAlteredOrNewerMigration(t *testing.T) {
 		query string
 	}{
 		{"checksum alterado", `UPDATE schema_migrations SET checksum='different' WHERE version=1`},
-		{"versão futura", `INSERT INTO schema_migrations(version, checksum) VALUES (2, 'future')`},
+		{"versão futura", `INSERT INTO schema_migrations(version, checksum) VALUES (3, 'future')`},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			path := filepath.Join(t.TempDir(), "db.sqlite")
@@ -156,5 +158,44 @@ func TestCanonicalContentSurvivesIndexDeletionAndRejectsWrongSource(t *testing.T
 	var got string
 	if err := s.db.QueryRowContext(ctx, `SELECT text FROM document_units WHERE extraction_id=? AND unit_id=?`, "extract-a", "page-000001").Scan(&got); err != nil || got != original {
 		t.Fatalf("conteúdo canônico alterado: %q, %v", got, err)
+	}
+}
+
+func TestUpgradeFromVersionOnePreservesExistingData(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "old.sqlite")
+	db, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = db.ExecContext(ctx, `CREATE TABLE schema_migrations(version INTEGER PRIMARY KEY,checksum TEXT NOT NULL)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = db.ExecContext(ctx, initialMigration); err != nil {
+		t.Fatal(err)
+	}
+	digest := sha256.Sum256([]byte(initialMigration))
+	if _, err = db.ExecContext(ctx, `INSERT INTO schema_migrations(version,checksum) VALUES(1,?)`, hex.EncodeToString(digest[:])); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = db.ExecContext(ctx, `INSERT INTO sources(id,title,authors_json,format,permission_json) VALUES('legacy','Original','[]','pdf','{}')`); err != nil {
+		t.Fatal(err)
+	}
+	db.Close()
+	s, err := Init(ctx, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	var title string
+	var count int
+	if err = s.db.QueryRowContext(ctx, `SELECT title FROM sources WHERE id='legacy'`).Scan(&title); err != nil || title != "Original" {
+		t.Fatalf("dados originais: %q %v", title, err)
+	}
+	if err = s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM schema_migrations`).Scan(&count); err != nil || count != 2 {
+		t.Fatalf("migrations: %d %v", count, err)
+	}
+	if _, err = s.db.ExecContext(ctx, `SELECT adapter_sha256 FROM extraction_revisions`); err != nil {
+		t.Fatalf("nova coluna indisponível: %v", err)
 	}
 }

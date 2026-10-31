@@ -17,6 +17,7 @@ const usage = `Uso:
   alexandria catalog checksum <arquivo>
   alexandria extract --catalog <catálogo> (--source <id> | --all) [opções]
   alexandria store init --db <arquivo.sqlite>
+  alexandria store import --db <arquivo.sqlite> --catalog <catálogo.json> --source <id> --artifact <diretório>
 
 Validação local, sem alterar catálogo ou fontes. O aceite de M1 exige --require-count 9.
 `

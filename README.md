@@ -15,8 +15,8 @@ workflow de CI. O catálogo privado dos nove PDFs foi validado, com hashes,
 proveniência e declaração do responsável para uso não comercial em estudo e pesquisa.
 A entrega de M1-01 foi aprovada na [revisão técnica local](docs/reviews/M1-01.md).
 M1-02 possui [extração local de PDF](docs/EXTRACTION.md); a auditoria registra
-limites de fidelidade. M1-03 iniciou [SQLite e migrations](docs/SQLITE.md); ainda
-não há importação dos documentos, reconstrução de índice ou pesquisa funcional.
+limites de fidelidade. M1-03 iniciou [SQLite, migrations e importação](docs/SQLITE.md);
+reconstrução de índice e pesquisa funcional ainda estão pendentes.
 M2 aguarda o gate de M1; M3–M8
 são hipóteses de capacidade. Gates propostos não representam resultados obtidos.
 

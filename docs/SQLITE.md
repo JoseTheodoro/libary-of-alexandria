@@ -1,9 +1,9 @@
 # SQLite — início de M1-03
 
 Esta etapa inicia a [issue #13](https://github.com/JoseTheodoro/libary-of-alexandria/issues/13).
-Implementa inicialização explícita de um banco local, schema versionado e testes de
-capacidade/integridade. Importação dos artefatos de #12, chunking, reconstrução do
-índice, pesquisa e consultas de aceite ainda serão implementados.
+Implementa inicialização explícita de um banco local, schema versionado e
+importação transacional dos artefatos de #12. Chunking, ativação de revisões,
+reconstrução do índice, pesquisa e consultas de aceite ainda serão implementados.
 
 ## Decisão de driver
 
@@ -34,20 +34,47 @@ go run ./cmd/alexandria store init --db .cache/alexandria.sqlite
 O comando cria ou abre o banco e executa migrations, retornando versão do schema e
 versão SQLite em JSON. O diretório pai deve existir. `data/`, `.cache/` e arquivos
 SQLite são ignorados pelo Git; escolha uma localização privada para o acervo real.
-O comando não importa livros nem artefatos. Reexecutá-lo confere as migrations,
+O comando `init` não importa livros nem artefatos. Reexecutá-lo confere as migrations,
 sem recriar as tabelas ou apagar conteúdo.
 
-A migration SQL é incorporada ao binário e aplicada em transação. A tabela
+As migrations SQL são incorporadas ao binário e aplicadas em transação. A tabela
 `schema_migrations` registra versão e SHA-256 do SQL aplicado. Versões futuras ou
 checksums incompatíveis são recusados; falhas de migration revertem a transação e
 preservam o banco existente. Não há migração reversa automática nesta etapa.
 
-O schema inicial contém fontes e revisões, extrações, unidades de documento,
+O schema contém fontes e revisões, extrações, unidades de documento,
 seções, diagnósticos, perfis e fragmentos, seleção ativa e estado do índice. O
 conteúdo extraído pertence às tabelas canônicas; `fragment_fts` é uma projeção
 FTS5 derivada e sua chave inteira corresponde à de `fragments`. O teste confirma
 que excluir entradas do índice não altera o texto canônico. A manutenção e
 reconstrução consistente dessa projeção ainda serão implementadas em #13.
+
+## Importação canônica
+
+```sh
+go run ./cmd/alexandria store import --db data/alexandria.sqlite --catalog data/catalog.json --source ID --artifact /caminho/do/artefato
+```
+
+O banco deve ter sido criado por `store init`. O importador verifica permissões,
+checksum da fonte, identidade e versão do manifesto, digest e protocolo JSONL da
+extração completa. Ele grava fonte, revisão, unidades, seções e diagnósticos em
+uma transação; a leitura por streaming confere novamente o digest antes do commit.
+O checksum da fonte é revalidado antes de concluir a transação.
+
+Reimportar o mesmo artefato valida os registros existentes e retorna
+`already_imported: true`; diferenças ou corrupção são recusadas com rollback.
+Metadados existentes divergentes não são sobrescritos silenciosamente. A migration
+2 registra o SHA-256 do adaptador e preserva os dados existentes da versão 1.
+
+Nove extrações reais foram importadas e reimportadas em um banco privado de
+validação: nove fontes, 4.214 unidades, 2.430 seções e 69 diagnósticos. SQLite
+`integrity_check` e `foreign_key_check` passaram. O banco, as fontes e os relatórios
+estão em `data/`, ignorado pelo Git; nenhum trecho do acervo é necessário na CI.
+
+Os diagnósticos do fluxo de extração são importados. A auditoria independente de
+qualidade de #12 permanece em arquivo privado separado e sua incorporação ao fluxo de
+busca precisa ser definida antes do aceite final. Esta importação não ativa revisões,
+não cria fragmentos e não atualiza o índice FTS5; essas etapas continuam pendentes.
 
 ## Verificação
 
@@ -59,5 +86,6 @@ go test -race -count=1 ./...
 Os testes usam bancos temporários em disco e verificam FTS5, persistência após
 reabertura, foreign keys após reconexão, rejeição de fonte incorreta na seleção
 ativa, preservação do texto após exclusão da projeção, checksum/versão de
-`schema_migrations` e rollback sem perda de dados existentes. Não há medição de
-retrieval nem importação do acervo real nesta etapa.
+`schema_migrations`, atualização da versão 1 para 2, importação/reimportação,
+artefatos manipulados, preservação de texto e rollback sem perda de dados existentes.
+Não há medição de retrieval nesta etapa.

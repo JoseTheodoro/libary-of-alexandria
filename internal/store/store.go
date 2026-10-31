@@ -18,6 +18,13 @@ import (
 //go:embed migrations/001_init.sql
 var initialMigration string
 
+//go:embed migrations/002_adapter_digest.sql
+var adapterDigestMigration string
+
+var migrations = []string{initialMigration, adapterDigestMigration}
+
+const SchemaVersion = 2
+
 type Store struct{ db *sql.DB }
 
 // Init creates or migrates the database as an explicit write operation.
@@ -75,9 +82,7 @@ func (s *Store) initialize(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	digest := sha256.Sum256([]byte(initialMigration))
-	expected := hex.EncodeToString(digest[:])
-	applied := false
+	applied := 0
 	for rows.Next() {
 		var version int
 		var checksum string
@@ -85,22 +90,28 @@ func (s *Store) initialize(ctx context.Context) error {
 			rows.Close()
 			return err
 		}
-		if version != 1 || checksum != expected {
+		if version != applied+1 || version > len(migrations) {
 			rows.Close()
 			return fmt.Errorf("migration desconhecida ou alterada: versão %d", version)
 		}
-		applied = true
+		digest := sha256.Sum256([]byte(migrations[version-1]))
+		if checksum != hex.EncodeToString(digest[:]) {
+			rows.Close()
+			return fmt.Errorf("migration desconhecida ou alterada: versão %d", version)
+		}
+		applied++
 	}
 	if err := rows.Err(); err != nil {
 		rows.Close()
 		return err
 	}
 	rows.Close()
-	if !applied {
-		if _, err := tx.ExecContext(ctx, initialMigration); err != nil {
-			return fmt.Errorf("aplicar migration inicial (FTS5 necessário): %w", err)
+	for index := applied; index < len(migrations); index++ {
+		if _, err := tx.ExecContext(ctx, migrations[index]); err != nil {
+			return fmt.Errorf("aplicar migration %d (FTS5 necessário): %w", index+1, err)
 		}
-		if _, err := tx.ExecContext(ctx, "INSERT INTO schema_migrations(version, checksum) VALUES(?, ?)", 1, expected); err != nil {
+		digest := sha256.Sum256([]byte(migrations[index]))
+		if _, err := tx.ExecContext(ctx, "INSERT INTO schema_migrations(version, checksum) VALUES(?, ?)", index+1, hex.EncodeToString(digest[:])); err != nil {
 			return err
 		}
 	}
