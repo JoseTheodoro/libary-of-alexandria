@@ -134,7 +134,8 @@ Execute `store verify-fts --db data/alexandria.sqlite` para verificar a projeç�
 canônica e os segmentos internos. Esse comando exige acesso de escrita e uma
 transação, pois o SQLite expõe a verificação por um comando especial de inserção;
 a transação é revertida após a verificação. Ele não cria nem migra o banco e não
-é executado automaticamente a cada busca. A semântica está na
+é executado automaticamente a cada busca. A avaliação de aceite também executa a
+verificação na própria transação. A semântica está na
 [documentação oficial do SQLite](https://www.sqlite.org/fts5.html#the_integrity_check_command).
 
 Termos separados por espaço são tratados literalmente, com `AND` e escape da

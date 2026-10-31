@@ -19,6 +19,7 @@ func runAcceptance(args []string, stdout, stderr io.Writer) int {
 	db := flags.String("db", "", "banco SQLite existente")
 	path := flags.String("suite", "", "gabarito JSON local")
 	auditPath := flags.String("audit", "", "auditoria de qualidade JSON local")
+	includeEvidence := flags.Bool("include-evidence", false, "incluir texto protegido para revisão local")
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return 0
@@ -81,13 +82,18 @@ func runAcceptance(args []string, stdout, stderr io.Writer) int {
 		}
 	}
 	ctx := context.Background()
-	s, err := store.OpenReadOnly(ctx, *db)
+	s, err := store.OpenExisting(ctx, *db)
 	if err != nil {
 		fmt.Fprintln(stderr, err)
 		return 1
 	}
 	defer s.Close()
-	report, err := s.EvaluateAcceptanceWithAudit(ctx, suite, audit)
+	var report store.AcceptanceReport
+	if *includeEvidence {
+		report, err = s.EvaluateAcceptanceReview(ctx, suite, audit)
+	} else {
+		report, err = s.EvaluateAcceptanceWithAudit(ctx, suite, audit)
+	}
 	if err != nil {
 		fmt.Fprintln(stderr, "Erro na avaliação:", err)
 		return 1

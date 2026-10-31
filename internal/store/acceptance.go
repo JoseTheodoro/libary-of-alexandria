@@ -2,11 +2,12 @@ package store
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/JoseTheodoro/libary-of-alexandria/internal/extract"
 )
 
 // AcceptanceSuite is a private, pre-reviewed gold set. Offsets refer to the
@@ -29,9 +30,17 @@ type AcceptanceCase struct {
 }
 
 type AcceptanceCaseResult struct {
-	ID          string   `json:"id"`
-	Rank        int      `json:"rank"` // zero means no expected reference in the top five.
-	FragmentIDs []string `json:"fragment_ids"`
+	ID          string              `json:"id"`
+	Rank        int                 `json:"rank"` // zero means no expected reference in the top five.
+	FragmentIDs []string            `json:"fragment_ids"`
+	Expected    *AcceptanceEvidence `json:"expected,omitempty"`
+	Results     []SearchHit         `json:"results,omitempty"`
+}
+
+type AcceptanceEvidence struct {
+	Case    AcceptanceCase  `json:"case"`
+	Locator extract.Locator `json:"locator"`
+	Text    string          `json:"text"`
 }
 
 type AcceptanceReport struct {
@@ -91,11 +100,20 @@ func (s *Store) EvaluateAcceptanceWithAudit(ctx context.Context, suite Acceptanc
 	return s.evaluateWithAudit(ctx, suite, 9, 2, 15, &audit)
 }
 
+// EvaluateAcceptanceReview includes protected source text for local review.
+func (s *Store) EvaluateAcceptanceReview(ctx context.Context, suite AcceptanceSuite, audit QualityAudit) (AcceptanceReport, error) {
+	return s.evaluateWithOptions(ctx, suite, 9, 2, 15, &audit, true)
+}
+
 func (s *Store) evaluate(ctx context.Context, suite AcceptanceSuite, sourceCount, perSource, minimum int) (AcceptanceReport, error) {
 	return s.evaluateWithAudit(ctx, suite, sourceCount, perSource, minimum, nil)
 }
 
 func (s *Store) evaluateWithAudit(ctx context.Context, suite AcceptanceSuite, sourceCount, perSource, minimum int, audit *QualityAudit) (AcceptanceReport, error) {
+	return s.evaluateWithOptions(ctx, suite, sourceCount, perSource, minimum, audit, false)
+}
+
+func (s *Store) evaluateWithOptions(ctx context.Context, suite AcceptanceSuite, sourceCount, perSource, minimum int, audit *QualityAudit, includeEvidence bool) (AcceptanceReport, error) {
 	report := AcceptanceReport{SchemaVersion: 1, Total: len(suite.Cases), Cases: []AcceptanceCaseResult{}}
 	if suite.SchemaVersion != 1 || len(suite.Cases) != sourceCount*perSource || strings.TrimSpace(suite.IndexDigest) == "" {
 		return report, fmt.Errorf("suíte de aceite incompleta ou versão inválida")
@@ -105,7 +123,9 @@ func (s *Store) evaluateWithAudit(ctx context.Context, suite AcceptanceSuite, so
 		return report, err
 	}
 	report.SuiteSHA256 = digest(encoded)
-	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	// SQLite's FTS5 integrity-check is a special INSERT, so the full evaluation
+	// runs in one rollback-only write transaction and never migrates the database.
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return report, err
 	}
@@ -116,6 +136,9 @@ func (s *Store) evaluateWithAudit(ctx context.Context, suite AcceptanceSuite, so
 	}
 	if index.Digest != suite.IndexDigest || index.Documents != sourceCount {
 		return report, fmt.Errorf("índice ou quantidade de fontes diverge da suíte")
+	}
+	if err := checkFTSIntegrity(ctx, tx); err != nil {
+		return report, fmt.Errorf("integridade interna FTS5: %w", err)
 	}
 	report.IndexDigest = index.Digest
 	if err := tx.QueryRowContext(ctx, `SELECT sqlite_version()`).Scan(&report.SQLiteVersion); err != nil {
@@ -130,6 +153,7 @@ func (s *Store) evaluateWithAudit(ctx context.Context, suite AcceptanceSuite, so
 	}
 	seen := map[string]bool{}
 	counts := map[string]int{}
+	expected := map[string]AcceptanceEvidence{}
 	// Validate every expected span before running the first query.
 	for _, c := range suite.Cases {
 		if strings.TrimSpace(c.ID) == "" || seen[c.ID] || strings.TrimSpace(c.Query) == "" || !utf8.ValidString(c.Query) || strings.ContainsRune(c.Query, '\x00') || c.SourceID == "" || c.ExtractionID == "" || c.UnitID == "" {
@@ -137,8 +161,8 @@ func (s *Store) evaluateWithAudit(ctx context.Context, suite AcceptanceSuite, so
 		}
 		seen[c.ID] = true
 		counts[c.SourceID]++
-		var text, sha string
-		err := tx.QueryRowContext(ctx, `SELECT u.text,e.source_sha256 FROM active_documents a JOIN extraction_revisions e ON e.id=a.extraction_id AND e.source_id=a.source_id JOIN document_units u ON u.extraction_id=e.id WHERE a.source_id=? AND a.extraction_id=? AND u.unit_id=?`, c.SourceID, c.ExtractionID, c.UnitID).Scan(&text, &sha)
+		var text, sha, locator string
+		err := tx.QueryRowContext(ctx, `SELECT u.text,e.source_sha256,u.locator_json FROM active_documents a JOIN extraction_revisions e ON e.id=a.extraction_id AND e.source_id=a.source_id JOIN document_units u ON u.extraction_id=e.id WHERE a.source_id=? AND a.extraction_id=? AND u.unit_id=?`, c.SourceID, c.ExtractionID, c.UnitID).Scan(&text, &sha, &locator)
 		if err != nil {
 			return report, fmt.Errorf("caso %s: referência não está ativa: %w", c.ID, err)
 		}
@@ -151,6 +175,13 @@ func (s *Store) evaluateWithAudit(ctx context.Context, suite AcceptanceSuite, so
 		}
 		if count == 0 {
 			return report, fmt.Errorf("caso %s: nenhum fragmento contém a evidência", c.ID)
+		}
+		if includeEvidence {
+			loc, err := parseLocator(locator, text)
+			if err != nil {
+				return report, fmt.Errorf("caso %s: %w", c.ID, err)
+			}
+			expected[c.ID] = AcceptanceEvidence{Case: c, Locator: loc, Text: text[c.StartByte:c.EndByte]}
 		}
 	}
 	if len(counts) != sourceCount {
@@ -167,6 +198,11 @@ func (s *Store) evaluateWithAudit(ctx context.Context, suite AcceptanceSuite, so
 			return report, fmt.Errorf("caso %s: %w", c.ID, err)
 		}
 		result := AcceptanceCaseResult{ID: c.ID, FragmentIDs: []string{}}
+		if includeEvidence {
+			evidence := expected[c.ID]
+			result.Expected = &evidence
+			result.Results = hits
+		}
 		for i, hit := range hits {
 			result.FragmentIDs = append(result.FragmentIDs, hit.FragmentID)
 			report.ReferencesChecked++

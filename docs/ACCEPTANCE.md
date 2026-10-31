@@ -51,11 +51,20 @@ go run ./cmd/alexandria store verify-fts --db data/alexandria.sqlite
 go run ./cmd/alexandria acceptance --db data/alexandria.sqlite --suite data/acceptance-suite.json --audit data/extraction-acceptance-audit.json > data/acceptance-report.json
 ```
 
+Para produzir um pacote privado de revisão com as consultas, o trecho esperado e
+o texto canônico e a proveniência de cada resultado, acrescente
+`--include-evidence` e redirecione a saída para um arquivo em `data/`. Essa opção
+inclui conteúdo das fontes e deve permanecer local; o relatório padrão omite os
+textos. A geração do pacote não registra nem substitui a revisão de uma pessoa.
+
 O avaliador valida todos os gabaritos antes da primeira consulta, recusa fonte ou
 revisão não ativa, hash divergente, intervalo inválido, ausência de fragmento
 contendo a evidência, índice divergente, IDs duplicados e distribuição incorreta.
-A avaliação usa uma única transação de leitura, pesquisa em todo o acervo e registra
-o primeiro resultado que contém a evidência esperada entre os cinco primeiros.
+A avaliação verifica também os segmentos FTS5 e executa todas as consultas na
+mesma transação, revertida ao final. Como o comando de integridade do SQLite usa
+uma inserção especial, a avaliação exige acesso de escrita, mas não cria nem migra
+o banco e não grava alterações. Ela pesquisa todo o acervo e registra o primeiro
+resultado que contém a evidência esperada entre os cinco primeiros.
 Todos os resultados retornados são resolvidos e validados contra o canônico.
 
 O relatório registra digest do índice, digest semântico da suíte, versão SQLite,
@@ -70,8 +79,8 @@ abaixo da meta retorna código 1 e ainda produz o relatório. Entrada inválida 
 erro de execução também retorna 1; argumentos inválidos retornam 2. Execute duas
 vezes com a mesma suíte e compare os relatórios antes de registrar evidência.
 
-A verificação interna dos segmentos FTS5 é uma operação separada e precisa ser
-executada antes do aceite; a busca e a avaliação não a executam automaticamente.
+A busca normal não verifica automaticamente os segmentos internos. A avaliação faz
+essa verificação na mesma transação; `store verify-fts` também a oferece separadamente.
 
 ## Medição preliminar local
 
@@ -96,9 +105,23 @@ Os índices remissivos também mostram que uma correspondência lexical pode ret
 uma lista de referências em vez de uma passagem explicativa, o que deve ser
 considerado ao revisar a qualidade da recuperação.
 
-O aceite **não está comprovado**: os gabaritos e a relevância dos resultados
-precisam de revisão independente, as diferenças de extração em páginas de índice
-precisam ser consideradas e os avisos da auditoria de #12 devem ser avaliados.
+Os critérios objetivos da #13 foram atendidos localmente: 15/18 consultas com
+referência esperada no Top 5, 78/78 referências resolvíveis nas fontes verificadas
+e testes locais automáticos aprovados. A revisão independente das consultas é
+recomendada, mas não consta como critério obrigatório da issue. Este aceite não
+implica relevância perfeita, fidelidade visual integral, aprovação do milestone
+nem entrega da branch na main. As limitações acima permanecem válidas.
 Em execução posterior, `verify-fts` passou e duas avaliações com a auditoria da #12
 mantiveram o ranking: 15/18, com 34 amostras e um aviso específico. Gabarito, relatórios e comparações
 permanecem privados em `data/`; não foram publicados trechos nem hashes das fontes.
+Os nove arquivos originais passaram em nova validação do catálogo, e uma
+reconstrução do índice em cópia privada manteve o relatório de avaliação idêntico.
+
+Uma conferência adicional verificou as 78 referências retornadas: os nove arquivos
+originais corresponderam aos checksums do catálogo, cada fragmento e intervalo
+correspondeu à unidade canônica, e a página física de cada resultado foi aberta
+com texto não vazio pelo PDFKit. O relatório privado vincula essas verificações ao
+digest da suíte e do índice. Isso demonstra que os localizadores podem ser resolvidos
+nos arquivos verificados, mas não comprova por si só relevância, fidelidade visual
+integral nem independência na seleção das consultas. As três páginas de índices
+remissivos e as limitações da auditoria permanecem explicitamente registradas.

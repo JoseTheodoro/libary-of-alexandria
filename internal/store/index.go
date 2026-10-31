@@ -74,13 +74,18 @@ func (s *Store) VerifyFTS(ctx context.Context) (IndexResult, error) {
 	if err != nil {
 		return IndexResult{}, err
 	}
-	if _, err := tx.ExecContext(ctx, `INSERT INTO fragment_fts(fragment_fts) VALUES('integrity-check')`); err != nil {
+	if err := checkFTSIntegrity(ctx, tx); err != nil {
 		return IndexResult{}, fmt.Errorf("integridade interna FTS5: %w", err)
 	}
 	if err := tx.Rollback(); err != nil {
 		return IndexResult{}, err
 	}
 	return result, nil
+}
+
+func checkFTSIntegrity(ctx context.Context, tx *sql.Tx) error {
+	_, err := tx.ExecContext(ctx, `INSERT INTO fragment_fts(fragment_fts) VALUES('integrity-check')`)
+	return err
 }
 
 type activeDocument struct{ source, extraction, profile, title, config, status string }

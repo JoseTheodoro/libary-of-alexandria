@@ -47,6 +47,13 @@ func TestEvaluateAcceptanceScoresAndFreezesGold(t *testing.T) {
 	if err != nil || withAudit.Audit == nil || withAudit.Audit.Warnings != 1 || len(withAudit.Audit.KnownLimitations) != 1 {
 		t.Fatalf("auditoria: %+v %v", withAudit.Audit, err)
 	}
+	if withAudit.Cases[0].Expected != nil || len(withAudit.Cases[0].Results) != 0 {
+		t.Fatal("relatório padrão divulgou evidências")
+	}
+	review, err := s.evaluateWithOptions(ctx, suite, 1, 2, 1, &audit, true)
+	if err != nil || review.Cases[0].Expected == nil || review.Cases[0].Expected.Text != "Ação" || review.Cases[0].Expected.Locator.Page == nil || *review.Cases[0].Expected.Locator.Page != 1 || len(review.Cases[0].Results) != 1 || review.Cases[0].Results[0].FragmentID != report.Cases[0].FragmentIDs[0] {
+		t.Fatalf("relatório de revisão inválido: %+v %v", review.Cases, err)
+	}
 	audit.Samples[0].EventsSHA256 = "wrong"
 	if _, err := s.evaluateWithAudit(ctx, suite, 1, 2, 1, &audit); err == nil {
 		t.Fatal("auditoria de outra extração aceita")
@@ -83,6 +90,12 @@ func TestEvaluateAcceptanceScoresAndFreezesGold(t *testing.T) {
 	}
 	if _, err := s.EvaluateAcceptance(ctx, suite); err == nil {
 		t.Fatal("gabarito incompleto de M1 aceito")
+	}
+	if _, err := s.db.ExecContext(ctx, `DELETE FROM fragment_fts_data WHERE id > 10`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.evaluate(ctx, suite, 1, 2, 1); err == nil {
+		t.Fatal("avaliação aceitou índice FTS5 internamente corrompido")
 	}
 }
 
