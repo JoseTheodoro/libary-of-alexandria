@@ -8,8 +8,8 @@ de M1 e suas histórias, com associação confirmada durante a preparação da e
 
 ## Estado e governança
 
-M1 está em execução; #11 foi aprovada na revisão técnica local e #12 é a próxima
-história. M2 tem escopo aprovado e aguarda o gate de M1.
+M1 está em execução; #11 e #12 foram concluídas e #13 está em andamento.
+M2 tem escopo aprovado e aguarda o gate de M1.
 M3–M8 são hipóteses de
 capacidade, a redefinir conforme as evidências das etapas anteriores.
 **Todos os exit gates abaixo são propostas a revisar no início do respectivo
@@ -24,7 +24,7 @@ explícitas antes de avançar. Infraestrutura futura exige necessidade medida.
 
 | Milestone / issue | Capacidade e dependência | Exit gate proposto |
 | --- | --- | --- |
-| [M1 — Knowledge Foundation (#3)](https://github.com/JoseTheodoro/libary-of-alexandria/issues/3) | Em execução; #11 aprovada localmente, #12 e #13 pendentes. Catalogar e ingerir nove livros autorizados; conteúdo canônico em SQLite, FTS5 reconstruível e CLI de busca. | Nove livros com hash e proveniência; ingestão idempotente; fragmentos com localizadores corretos; testes de ingestão, persistência e consulta passam. |
+| [M1 — Knowledge Foundation (#3)](https://github.com/JoseTheodoro/libary-of-alexandria/issues/3) | Em execução; #11 e #12 concluídas, #13 em andamento. Catalogar e ingerir nove livros autorizados; conteúdo canônico em SQLite, FTS5 reconstruível e CLI de busca. | Nove livros com hash e proveniência; ingestão idempotente; fragmentos com localizadores corretos; testes de ingestão, persistência e consulta passam. |
 | [M2 — Retrieval Quality & Evaluation (#4)](https://github.com/JoseTheodoro/libary-of-alexandria/issues/4) | Escopo aprovado, depende de M1. Benchmark de 120 perguntas: 30 literais, 42 semânticas, 30 multifonte, 18 sem resposta; split 72/48; avaliador determinístico, baseline FTS5/BM25 e experimentos controlados. | No holdout: Hit@5 ≥ 90% para respondíveis e nDCG@10 ≥ 0,80 (limiares propostos); 100% de integridade dos localizadores; medir ausência de resposta, latência e reprodutibilidade; decisão GO / CONDITIONAL / NO-GO. |
 | [M3 — Knowledge Intelligence (#5)](https://github.com/JoseTheodoro/libary-of-alexandria/issues/5) | Visão futura; redefinir após M2. Conceitos tipados, condições, contraexemplos, acordos/conflitos entre fontes e propostas rastreáveis. | Amostra revisada por humanos com precisão e proveniência medidas; divergências representadas; abstenção quando não houver fonte. |
 | [M4 — Skill Factory (#6)](https://github.com/JoseTheodoro/libary-of-alexandria/issues/6) | Visão futura; redefinir após M3. Gerar, validar, versionar e distribuir Skills baseadas em conhecimento aprovado; separar comportamento de enforcement. | Comparar tarefas com/sem Skill; melhorias reproduzíveis; custo, latência e riscos registrados; Skills com testes e revisão. |

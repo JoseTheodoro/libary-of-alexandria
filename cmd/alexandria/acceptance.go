@@ -1,0 +1,131 @@
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"flag"
+	"fmt"
+	"io"
+	"os"
+
+	"github.com/JoseTheodoro/libary-of-alexandria/internal/store"
+	"github.com/JoseTheodoro/libary-of-alexandria/internal/strictjson"
+)
+
+func runAcceptance(args []string, stdout, stderr io.Writer) int {
+	flags := flag.NewFlagSet("acceptance", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	db := flags.String("db", "", "banco SQLite existente")
+	path := flags.String("suite", "", "gabarito JSON local")
+	auditPath := flags.String("audit", "", "auditoria de qualidade JSON local")
+	includeEvidence := flags.Bool("include-evidence", false, "incluir texto protegido para revisão local")
+	if err := flags.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return 0
+		}
+		return 2
+	}
+	if *db == "" || *path == "" || *auditPath == "" || flags.NArg() != 0 {
+		flags.Usage()
+		return 2
+	}
+	data, err := readAcceptanceFile(*path)
+	if err != nil {
+		fmt.Fprintln(stderr, "Erro ao ler gabarito:", err)
+		return 1
+	}
+	var suite store.AcceptanceSuite
+	if err := strictjson.Decode(data, &suite); err != nil {
+		fmt.Fprintln(stderr, "Gabarito inválido:", err)
+		return 1
+	}
+	var fields struct {
+		Cases []map[string]json.RawMessage `json:"cases"`
+	}
+	if err := json.Unmarshal(data, &fields); err != nil {
+		fmt.Fprintln(stderr, "Gabarito inválido:", err)
+		return 1
+	}
+	for _, c := range fields.Cases {
+		for _, name := range []string{"start_byte", "end_byte"} {
+			if v, ok := c[name]; !ok || string(v) == "null" {
+				fmt.Fprintln(stderr, "Gabarito inválido: intervalo incompleto")
+				return 1
+			}
+		}
+	}
+	auditData, err := readAcceptanceFile(*auditPath)
+	if err != nil {
+		fmt.Fprintln(stderr, "Erro ao ler auditoria:", err)
+		return 1
+	}
+	var audit store.QualityAudit
+	if err := strictjson.Decode(auditData, &audit); err != nil {
+		fmt.Fprintln(stderr, "Auditoria inválida:", err)
+		return 1
+	}
+	var auditFields struct {
+		Samples []map[string]json.RawMessage `json:"samples"`
+	}
+	if err := json.Unmarshal(auditData, &auditFields); err != nil {
+		fmt.Fprintln(stderr, "Auditoria inválida:", err)
+		return 1
+	}
+	for _, sample := range auditFields.Samples {
+		for _, name := range []string{"source_id", "source_sha256", "extraction_key", "events_sha256", "page", "token_order_similarity", "warning"} {
+			value, ok := sample[name]
+			if !ok || (name != "warning" && string(value) == "null") {
+				fmt.Fprintln(stderr, "Auditoria inválida: amostra incompleta")
+				return 1
+			}
+		}
+	}
+	ctx := context.Background()
+	s, err := store.OpenExisting(ctx, *db)
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return 1
+	}
+	defer s.Close()
+	var report store.AcceptanceReport
+	if *includeEvidence {
+		report, err = s.EvaluateAcceptanceReview(ctx, suite, audit)
+	} else {
+		report, err = s.EvaluateAcceptanceWithAudit(ctx, suite, audit)
+	}
+	if err != nil {
+		fmt.Fprintln(stderr, "Erro na avaliação:", err)
+		return 1
+	}
+	encoder := json.NewEncoder(stdout)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(report); err != nil {
+		fmt.Fprintln(stderr, err)
+		return 1
+	}
+	if !report.Passed {
+		return 1
+	}
+	return 0
+}
+
+func readAcceptanceFile(path string) ([]byte, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	const limit = 4 << 20
+	data, err := io.ReadAll(io.LimitReader(f, limit+1))
+	closeErr := f.Close()
+	if err != nil {
+		return nil, err
+	}
+	if closeErr != nil {
+		return nil, closeErr
+	}
+	if len(data) > limit {
+		return nil, fmt.Errorf("arquivo excede limite de tamanho")
+	}
+	return data, nil
+}

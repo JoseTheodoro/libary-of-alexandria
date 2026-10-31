@@ -16,6 +16,15 @@ const usage = `Uso:
   alexandria catalog validate [--require-count N] <catalog.json>
   alexandria catalog checksum <arquivo>
   alexandria extract --catalog <catálogo> (--source <id> | --all) [opções]
+  alexandria store init --db <arquivo.sqlite>
+  alexandria store import --db <arquivo.sqlite> --catalog <catálogo.json> --source <id> --artifact <diretório>
+  alexandria store chunk --db <arquivo.sqlite> --extraction <id>
+  alexandria store activate --db <arquivo.sqlite> --source <id> --extraction <id> --profile <id>
+  alexandria store rebuild --db <arquivo.sqlite>
+  alexandria store verify --db <arquivo.sqlite>
+  alexandria store verify-fts --db <arquivo.sqlite>
+  alexandria search --db <arquivo.sqlite> --query <consulta> [--limit N] [--source ID] [--json]
+  alexandria acceptance --db <arquivo.sqlite> --suite <gabarito.json> --audit <auditoria.json>
 
 Validação local, sem alterar catálogo ou fontes. O aceite de M1 exige --require-count 9.
 `
@@ -25,6 +34,15 @@ func main() {
 }
 
 func run(args []string, stdout, stderr io.Writer) int {
+	if len(args) > 0 && args[0] == "acceptance" {
+		return runAcceptance(args[1:], stdout, stderr)
+	}
+	if len(args) > 0 && args[0] == "search" {
+		return runSearch(args[1:], stdout, stderr)
+	}
+	if len(args) > 0 && args[0] == "store" {
+		return runStore(args[1:], stdout, stderr)
+	}
 	if len(args) > 0 && args[0] == "extract" {
 		return runExtract(args[1:], stdout, stderr)
 	}
