@@ -8,14 +8,16 @@ comprovação de valor das etapas anteriores.
 
 ## Estado atual
 
-Este repositório contém somente o bootstrap documental e as convenções básicas.
-Não há aplicação executável, ingestão, catálogo, banco, índice ou testes funcionais.
-M1 e M2 têm escopo aprovado, mas não estão implementados; M3–M8 são hipóteses de
-capacidade. Gates propostos não representam resultados obtidos.
-
-A próxima história funcional é
-[M1-01 — Catalogar seis fontes técnicas e seus direitos de uso](https://github.com/JoseTheodoro/libary-of-alexandria/issues/11),
-fora do escopo deste bootstrap. Nenhum livro ou dado bibliográfico foi cadastrado.
+M1 está em execução pela história
+[M1-01 — Catalogar nove fontes técnicas e seus direitos de uso](https://github.com/JoseTheodoro/libary-of-alexandria/issues/11),
+com catálogo JSON versionado, CLI Go para validação e SHA-256, testes sintéticos e
+workflow de CI. O catálogo privado dos nove PDFs foi validado, com hashes,
+proveniência e declaração do responsável para uso não comercial em estudo e pesquisa.
+A entrega de M1-01 foi aprovada na [revisão técnica local](docs/reviews/M1-01.md).
+M1-02 possui [extração local de PDF](docs/EXTRACTION.md) e está em revisão; a
+auditoria registra limites de fidelidade. Não há banco, índice ou pesquisa.
+M2 aguarda o gate de M1; M3–M8
+são hipóteses de capacidade. Gates propostos não representam resultados obtidos.
 
 ## Objetivos e documentação
 
@@ -24,6 +26,7 @@ fora do escopo deste bootstrap. Nenhum livro ou dado bibliográfico foi cadastra
 - [ADR-0001 — Arquitetura poliglota](docs/adr/0001-polyglot-architecture.md): proposta de responsabilidades e fronteiras entre linguagens.
 - [Roadmap](docs/ROADMAP.md): oito milestones, dependências e gates.
 - [M1 — Knowledge Foundation](docs/milestones/M1.md): escopo aprovado e critérios de aceite.
+- [Catálogo de fontes](docs/CATALOG.md): contrato JSON, comandos e limites de validação.
 - [AGENTS.md](AGENTS.md): instruções persistentes para Codex, OpenCode e futuras sessões.
 
 O contexto de produto parte da
@@ -38,7 +41,7 @@ Mudanças de escopo devem ser reconciliadas com as issues antes da implementaç�
 | Python, nas fronteiras especializadas | Extração avançada de documentos, OCR/análise de layout quando necessários e experimentação de embeddings/reranking no escopo autorizado. |
 | Rust, somente com justificativa e benchmark | Componentes intensivos, infraestrutura local e workers/controladores especializados do Harness quando houver necessidade comprovada. |
 | SQLite + FTS5 | Persistência local e busca lexical inicial; conteúdo canônico independente do índice reconstruível. |
-| GitHub Actions | Futura automação dos testes e validações que também rodem localmente. |
+| GitHub Actions | Testes Go e validação do catálogo sintético, também executáveis localmente. |
 
 Adaptadores Python terão entradas explícitas e saídas estruturadas, validadas e
 versionadas; no M1, a preferência é subprocesso local com JSONL, sem serviços de
@@ -51,28 +54,43 @@ A recuperação cross-lingual com consulta pt-BR e evidência EN será avaliada 
 
 O M1 não depende de embeddings, tradução por LLM, serviços externos ou banco vetorial.
 Containers só serão introduzidos quando houver necessidade demonstrada.
-Não há dependências instaladas
-ou versões de ferramentas definidas neste bootstrap.
+A implementação inicial usa somente a biblioteca padrão de Go 1.27.3, versão
+registrada em `go.mod`; não há dependências de módulos externos.
 
 ## Desenvolvimento local
 
-Para trabalhar neste estágio, bastam Git e um editor de texto; `gh` é opcional para
-consultar as issues. Após clonar, leia `AGENTS.md`, a documentação do milestone e a
-issue da tarefa. Trabalhe em uma issue por vez.
+Use Git, Go 1.27.3 e um editor de texto; `gh` é opcional para consultar as issues.
+Após clonar, leia `AGENTS.md`, a documentação do milestone e a issue da tarefa.
+Trabalhe em uma issue por vez.
 
 ```sh
 git clone https://github.com/JoseTheodoro/libary-of-alexandria.git
 cd libary-of-alexandria
 gh issue view 11 --repo JoseTheodoro/libary-of-alexandria
+go vet ./...
+go test -race -count=1 ./...
+go run ./cmd/alexandria catalog validate testdata/catalog/valid.json
 git status --short
 git diff --check
 ```
 
-A consulta ao GitHub requer rede; o produto deverá funcionar localmente e offline
-sempre que possível. Para alterações documentais, revise links, coerência com as
-issues e whitespace. `git diff --check` não verifica arquivos ainda não rastreados:
-revise-os também. Os comandos de build e testes da aplicação serão documentados
-junto ao primeiro código funcional.
+A consulta ao GitHub e a preparação do runner de CI requerem rede. A CLI e os testes
+rodam offline com o toolchain instalado. `go test -race` requer suporte a cgo e um
+compilador C no ambiente; `go test ./...` executa a suíte sem o detector de corridas.
+O workflow usa runner Linux e somente fontes sintéticas.
+
+Para produzir um executável local:
+
+```sh
+go build -o bin/alexandria ./cmd/alexandria
+bin/alexandria --help
+```
+
+O exemplo contém uma fonte sintética e não cumpre o aceite dos nove livros.
+Consulte o [guia do catálogo](docs/CATALOG.md) para registrar fontes reais e executar
+`catalog validate --require-count 9`. Para alterações documentais, revise links,
+coerência com as issues e whitespace. `git diff --check` não verifica arquivos ainda
+não rastreados: revise-os também.
 
 Mantenha livros, conteúdo extraído protegido, dados locais, credenciais e artefatos
 fora do Git. O `.gitignore` ajuda a evitar inclusões acidentais, mas não substitui

@@ -3,12 +3,14 @@
 Fonte: [North Star #1](https://github.com/JoseTheodoro/libary-of-alexandria/issues/1)
 e as oito issues abaixo, consultadas em 2026-10-31. Os milestones de produto são
 rastreados como issues; não são objetos GitHub Milestone. O
-[Project #2](https://github.com/users/JoseTheodoro/projects/2/views/1) é o quadro
-desejado, sem associação de itens confirmada nas issues consultadas.
+[Project #2](https://github.com/users/JoseTheodoro/projects/2/views/1) contém os itens
+de M1 e suas histórias, com associação confirmada durante a preparação da execução.
 
 ## Estado e governança
 
-M1 e M2 têm escopo aprovado; a execução permanece pendente. M3–M8 são hipóteses de
+M1 está em execução; #11 foi aprovada na revisão técnica local e #12 é a próxima
+história. M2 tem escopo aprovado e aguarda o gate de M1.
+M3–M8 são hipóteses de
 capacidade, a redefinir conforme as evidências das etapas anteriores.
 **Todos os exit gates abaixo são propostas a revisar no início do respectivo
 milestone**, não resultados nem aprovações de conclusão.
@@ -22,7 +24,7 @@ explícitas antes de avançar. Infraestrutura futura exige necessidade medida.
 
 | Milestone / issue | Capacidade e dependência | Exit gate proposto |
 | --- | --- | --- |
-| [M1 — Knowledge Foundation (#3)](https://github.com/JoseTheodoro/libary-of-alexandria/issues/3) | Escopo aprovado, execução pendente. Catalogar e ingerir seis livros autorizados; conteúdo canônico em SQLite, FTS5 reconstruível e CLI de busca. | Seis livros com hash e proveniência; ingestão idempotente; fragmentos com localizadores corretos; testes de ingestão, persistência e consulta passam. |
+| [M1 — Knowledge Foundation (#3)](https://github.com/JoseTheodoro/libary-of-alexandria/issues/3) | Em execução; #11 aprovada localmente, #12 e #13 pendentes. Catalogar e ingerir nove livros autorizados; conteúdo canônico em SQLite, FTS5 reconstruível e CLI de busca. | Nove livros com hash e proveniência; ingestão idempotente; fragmentos com localizadores corretos; testes de ingestão, persistência e consulta passam. |
 | [M2 — Retrieval Quality & Evaluation (#4)](https://github.com/JoseTheodoro/libary-of-alexandria/issues/4) | Escopo aprovado, depende de M1. Benchmark de 120 perguntas: 30 literais, 42 semânticas, 30 multifonte, 18 sem resposta; split 72/48; avaliador determinístico, baseline FTS5/BM25 e experimentos controlados. | No holdout: Hit@5 ≥ 90% para respondíveis e nDCG@10 ≥ 0,80 (limiares propostos); 100% de integridade dos localizadores; medir ausência de resposta, latência e reprodutibilidade; decisão GO / CONDITIONAL / NO-GO. |
 | [M3 — Knowledge Intelligence (#5)](https://github.com/JoseTheodoro/libary-of-alexandria/issues/5) | Visão futura; redefinir após M2. Conceitos tipados, condições, contraexemplos, acordos/conflitos entre fontes e propostas rastreáveis. | Amostra revisada por humanos com precisão e proveniência medidas; divergências representadas; abstenção quando não houver fonte. |
 | [M4 — Skill Factory (#6)](https://github.com/JoseTheodoro/libary-of-alexandria/issues/6) | Visão futura; redefinir após M3. Gerar, validar, versionar e distribuir Skills baseadas em conhecimento aprovado; separar comportamento de enforcement. | Comparar tarefas com/sem Skill; melhorias reproduzíveis; custo, latência e riscos registrados; Skills com testes e revisão. |
@@ -43,9 +45,9 @@ recuperação cross-lingual com consulta pt-BR e evidência EN, preservando as f
 originais. A composição desses casos no benchmark, os limiares específicos e os
 experimentos serão definidos no M2, sem inventar resultados ou alterar aqui os
 números propostos na issue #4. Essa decisão está registrada localmente em
-[Arquitetura](ARCHITECTURE.md); as issues remotas não foram alteradas nesta sessão.
+[Arquitetura](ARCHITECTURE.md) e no plano publicado na issue #3.
 
 O [escopo detalhado de M1](milestones/M1.md) reúne as histórias #11, #12 e #13.
 A primeira é [M1-01 (#11)](https://github.com/JoseTheodoro/libary-of-alexandria/issues/11),
-ainda não iniciada. M2 possui histórias #14–#21, conforme a North Star; seu
+aprovada na revisão técnica local dos nove livros reais. M2 possui histórias #14–#21, conforme a North Star; seu
 detalhamento deve ser consultado antes da execução, após o gate de M1.

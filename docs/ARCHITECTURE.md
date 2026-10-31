@@ -2,9 +2,9 @@
 
 Estado: requisitos definidos pelo usuário em 2026-10-31, durante o bootstrap.
 Este documento complementa a [North Star](NORTH_STAR.md), o [roadmap](ROADMAP.md)
-e o [escopo de M1](milestones/M1.md). Registra decisões para implementação futura;
-não há código, schema ou extratores implementados. As issues remotas não foram
-alteradas nesta sessão.
+e o [escopo de M1](milestones/M1.md). M1-01 iniciou a implementação do
+[catálogo e sua validação](CATALOG.md) em Go. M1-02 implementa extração local de
+PDF com eventos versionados; a persistência canônica em SQLite pertence a M1-03.
 
 ## Linguagens e fronteiras
 
