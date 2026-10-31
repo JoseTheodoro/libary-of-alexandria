@@ -15,11 +15,14 @@ import (
 )
 
 func runStore(args []string, stdout, stderr io.Writer) int {
+	if len(args) > 0 && args[0] == "chunk" {
+		return runStoreChunk(args[1:], stdout, stderr)
+	}
 	if len(args) > 0 && args[0] == "import" {
 		return runStoreImport(args[1:], stdout, stderr)
 	}
 	if len(args) == 0 || args[0] != "init" {
-		fmt.Fprintln(stderr, "Uso: alexandria store init --db <arquivo.sqlite>")
+		fmt.Fprintln(stderr, "Uso: alexandria store <init|import|chunk> [opções]")
 		return 2
 	}
 	flags := flag.NewFlagSet("store init", flag.ContinueOnError)
@@ -52,6 +55,45 @@ func runStore(args []string, stdout, stderr io.Writer) int {
 		SQLiteVersion string `json:"sqlite_version"`
 	}{store.SchemaVersion, version}); err != nil {
 		fmt.Fprintln(stderr, "Erro ao escrever resultado:", err)
+		return 1
+	}
+	return 0
+}
+
+func runStoreChunk(args []string, stdout, stderr io.Writer) int {
+	flags := flag.NewFlagSet("store chunk", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	dbPath := flags.String("db", "", "banco SQLite existente")
+	extraction := flags.String("extraction", "", "ID da revisão de extração")
+	if err := flags.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return 0
+		}
+		return 2
+	}
+	if *dbPath == "" || *extraction == "" || flags.NArg() != 0 {
+		flags.Usage()
+		return 2
+	}
+	info, err := os.Stat(*dbPath)
+	if err != nil || !info.Mode().IsRegular() {
+		fmt.Fprintln(stderr, "Banco existente não encontrado; execute store init primeiro")
+		return 1
+	}
+	ctx := context.Background()
+	s, err := store.Init(ctx, *dbPath)
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return 1
+	}
+	defer s.Close()
+	result, err := s.Chunk(ctx, *extraction)
+	if err != nil {
+		fmt.Fprintln(stderr, "Erro ao gerar fragmentos:", err)
+		return 1
+	}
+	if err := json.NewEncoder(stdout).Encode(result); err != nil {
+		fmt.Fprintln(stderr, err)
 		return 1
 	}
 	return 0

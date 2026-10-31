@@ -2,7 +2,7 @@
 
 Esta etapa inicia a [issue #13](https://github.com/JoseTheodoro/libary-of-alexandria/issues/13).
 Implementa inicialização explícita de um banco local, schema versionado e
-importação transacional dos artefatos de #12. Chunking, ativação de revisões,
+importação transacional dos artefatos de #12 e geração inicial de fragmentos. Ativação de revisões,
 reconstrução do índice, pesquisa e consultas de aceite ainda serão implementados.
 
 ## Decisão de driver
@@ -73,8 +73,30 @@ estão em `data/`, ignorado pelo Git; nenhum trecho do acervo é necessário na 
 
 Os diagnósticos do fluxo de extração são importados. A auditoria independente de
 qualidade de #12 permanece em arquivo privado separado e sua incorporação ao fluxo de
-busca precisa ser definida antes do aceite final. Esta importação não ativa revisões,
-não cria fragmentos e não atualiza o índice FTS5; essas etapas continuam pendentes.
+busca precisa ser definida antes do aceite final. A importação não ativa revisões,
+não cria fragmentos e não atualiza o índice FTS5.
+
+## Fragmentação inicial
+
+```sh
+go run ./cmd/alexandria store chunk --db data/alexandria.sqlite --extraction ID
+```
+
+O perfil inicial versionado usa uma unidade canônica inteira por fragmento não
+vazio, sem overlap. A meta de 4 KiB é indicativa: como ainda não há limites de
+estrutura suficientemente confiáveis para separar código e tabelas, unidades
+maiores permanecem inteiras. O comando registra o número de fragmentos acima da
+meta. Cada fragmento possui ID derivado da extração, perfil, unidade, intervalo
+em bytes UTF-8 e digest do trecho. A repetição valida os dados existentes em
+transação; texto divergente ou fragmentos extras causam erro. O conteúdo canônico
+não é modificado e unidades vazias não produzem fragmento.
+
+No banco privado de validação, as nove extrações produziram 4.154 fragmentos,
+dos quais 99 excedem a meta; a repetição preservou as contagens. A integridade
+e as foreign keys passaram. Esses números descrevem a execução local, não são
+uma avaliação de qualidade de recuperação. A configuração ainda deve ser avaliada
+antes do aceite. Fragmentação não ativa revisões nem atualiza a projeção FTS5;
+ativação, reconstrução, pesquisa e avaliação continuam pendentes.
 
 ## Verificação
 
