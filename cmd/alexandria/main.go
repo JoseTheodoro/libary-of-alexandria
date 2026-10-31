@@ -21,6 +21,8 @@ const usage = `Uso:
   alexandria store chunk --db <arquivo.sqlite> --extraction <id>
   alexandria store activate --db <arquivo.sqlite> --source <id> --extraction <id> --profile <id>
   alexandria store rebuild --db <arquivo.sqlite>
+  alexandria store verify --db <arquivo.sqlite>
+  alexandria search --db <arquivo.sqlite> --query <consulta> [--limit N] [--source ID] [--json]
 
 Validação local, sem alterar catálogo ou fontes. O aceite de M1 exige --require-count 9.
 `
@@ -30,6 +32,9 @@ func main() {
 }
 
 func run(args []string, stdout, stderr io.Writer) int {
+	if len(args) > 0 && args[0] == "search" {
+		return runSearch(args[1:], stdout, stderr)
+	}
 	if len(args) > 0 && args[0] == "store" {
 		return runStore(args[1:], stdout, stderr)
 	}

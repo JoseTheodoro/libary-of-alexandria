@@ -27,6 +27,67 @@ const SchemaVersion = 2
 
 type Store struct{ db *sql.DB }
 
+// OpenReadOnly refuses absent or incompatible databases and never runs migrations.
+func OpenReadOnly(ctx context.Context, path string) (*Store, error) {
+	if strings.TrimSpace(path) == "" || path == ":memory:" {
+		return nil, fmt.Errorf("informe um caminho de banco local em disco")
+	}
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+	query := url.Values{}
+	query.Set("mode", "ro")
+	query.Add("_pragma", "foreign_keys(1)")
+	query.Add("_pragma", "busy_timeout(5000)")
+	db, err := sql.Open("sqlite", (&url.URL{Scheme: "file", Path: abs, RawQuery: query.Encode()}).String())
+	if err != nil {
+		return nil, err
+	}
+	db.SetMaxOpenConns(1)
+	rows, err := db.QueryContext(ctx, `SELECT version,checksum FROM schema_migrations ORDER BY version`)
+	if err != nil {
+		db.Close()
+		return nil, fmt.Errorf("banco ausente ou schema não inicializado: %w", err)
+	}
+	count := 0
+	for rows.Next() {
+		var version int
+		var checksum string
+		if err := rows.Scan(&version, &checksum); err != nil {
+			rows.Close()
+			db.Close()
+			return nil, err
+		}
+		if version != count+1 || version > len(migrations) {
+			rows.Close()
+			db.Close()
+			return nil, fmt.Errorf("migration desconhecida ou ausente")
+		}
+		hash := sha256.Sum256([]byte(migrations[version-1]))
+		if checksum != hex.EncodeToString(hash[:]) {
+			rows.Close()
+			db.Close()
+			return nil, fmt.Errorf("migration alterada")
+		}
+		count++
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		db.Close()
+		return nil, err
+	}
+	if err := rows.Close(); err != nil {
+		db.Close()
+		return nil, err
+	}
+	if count != len(migrations) {
+		db.Close()
+		return nil, fmt.Errorf("schema incompatível; execute store init explicitamente")
+	}
+	return &Store{db: db}, nil
+}
+
 // Init creates or migrates the database as an explicit write operation.
 // The caller owns Close; no parent directories are created implicitly.
 func Init(ctx context.Context, path string) (*Store, error) {

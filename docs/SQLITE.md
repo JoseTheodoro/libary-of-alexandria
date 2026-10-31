@@ -3,8 +3,8 @@
 Esta etapa inicia a [issue #13](https://github.com/JoseTheodoro/libary-of-alexandria/issues/13).
 Implementa inicialização explícita de um banco local, schema versionado e
 importação transacional dos artefatos de #12, geração inicial de fragmentos e
-ativação com reconstrução transacional do índice. Pesquisa e consultas de aceite
-ainda serão implementadas.
+ativação com reconstrução transacional do índice e busca lexical com referências.
+As consultas de aceite ainda não foram preparadas ou medidas.
 
 ## Decisão de driver
 
@@ -95,8 +95,7 @@ No banco privado de validação, as nove extrações produziram 4.154 fragmentos
 dos quais 99 excedem a meta; a repetição preservou as contagens. A integridade
 e as foreign keys passaram. Esses números descrevem a execução local, não são
 uma avaliação de qualidade de recuperação. A configuração ainda deve ser avaliada
-antes do aceite. Fragmentação não ativa revisões nem atualiza a projeção FTS5;
-pesquisa e avaliação continuam pendentes.
+antes do aceite. Fragmentação não ativa revisões nem atualiza a projeção FTS5.
 
 ## Ativação e índice derivado
 
@@ -118,6 +117,36 @@ FTS5; duas reconstruções retornaram o mesmo estado, sem alterar as 4.214 unida
 canônicas. As verificações de integridade e foreign keys passaram. Isso valida a
 operação do índice, não a qualidade de busca ou o aceite da história. A auditoria
 de qualidade da #12 continua separada e deve ser considerada no aceite.
+
+## Busca e verificação
+
+```sh
+go run ./cmd/alexandria store verify --db data/alexandria.sqlite
+go run ./cmd/alexandria search --db data/alexandria.sqlite --query 'termos da consulta' --limit 5 --json
+```
+
+`search` e `verify` abrem o banco somente para leitura, recusam migrations
+incompatíveis e não criam banco. Cada consulta confere na mesma transação o estado,
+as foreign keys, os fragmentos, os localizadores e a cópia textual do índice em
+relação ao canônico. A verificação percorre a projeção completa e pode ser lenta
+em acervos maiores. Ela não substitui a verificação interna dos segmentos FTS5
+por `integrity-check`; corrupção interna que preserve as linhas de conteúdo pode
+exigir diagnóstico e reconstrução adicionais.
+
+Termos separados por espaço são tratados literalmente, com `AND` e escape da
+gramática FTS5; operadores não são interpretados como comandos. A tokenização
+`unicode61` ainda determina como símbolos são indexados. Os resultados são ordenados
+por BM25 e ID estável, resolvidos do texto canônico, e incluem fonte, edição quando
+conhecida, checksum, revisão, unidade, fragmento, página física, intervalo em bytes
+do texto extraído e diagnósticos da extração. `--source` filtra por fonte e `--json`
+oferece saída estruturada; consulta sem resultados retorna lista vazia ou mensagem
+legível. Offsets não são posições no PDF. O índice ausente ou divergente é erro,
+não uma busca sem resultados. A auditoria independente de #12 ainda não é incluída
+automaticamente nos diagnósticos exibidos.
+
+Uma verificação operacional no banco privado cobriu nove fontes e 4.154 fragmentos;
+duas consultas comuns e uma sem correspondência produziram saídas idênticas em
+repetições. Não representam benchmark nem comprovam os critérios de recuperação.
 
 ## Verificação
 

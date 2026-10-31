@@ -15,7 +15,7 @@ import (
 )
 
 func runStore(args []string, stdout, stderr io.Writer) int {
-	if len(args) > 0 && (args[0] == "activate" || args[0] == "rebuild") {
+	if len(args) > 0 && (args[0] == "activate" || args[0] == "rebuild" || args[0] == "verify") {
 		return runStoreIndex(args[0], args[1:], stdout, stderr)
 	}
 	if len(args) > 0 && args[0] == "chunk" {
@@ -25,7 +25,7 @@ func runStore(args []string, stdout, stderr io.Writer) int {
 		return runStoreImport(args[1:], stdout, stderr)
 	}
 	if len(args) == 0 || args[0] != "init" {
-		fmt.Fprintln(stderr, "Uso: alexandria store <init|import|chunk|activate|rebuild> [opções]")
+		fmt.Fprintln(stderr, "Uso: alexandria store <init|import|chunk|activate|rebuild|verify> [opções]")
 		return 2
 	}
 	flags := flag.NewFlagSet("store init", flag.ContinueOnError)
@@ -89,7 +89,12 @@ func runStoreIndex(command string, args []string, stdout, stderr io.Writer) int 
 		return 1
 	}
 	ctx := context.Background()
-	s, err := store.Init(ctx, *dbPath)
+	var s *store.Store
+	if command == "verify" {
+		s, err = store.OpenReadOnly(ctx, *dbPath)
+	} else {
+		s, err = store.Init(ctx, *dbPath)
+	}
 	if err != nil {
 		fmt.Fprintln(stderr, err)
 		return 1
@@ -98,8 +103,10 @@ func runStoreIndex(command string, args []string, stdout, stderr io.Writer) int 
 	var result store.IndexResult
 	if command == "activate" {
 		result, err = s.Activate(ctx, *source, *extraction, *profile)
-	} else {
+	} else if command == "rebuild" {
 		result, err = s.RebuildIndex(ctx)
+	} else {
+		result, err = s.Verify(ctx)
 	}
 	if err != nil {
 		fmt.Fprintln(stderr, "Erro ao atualizar índice:", err)

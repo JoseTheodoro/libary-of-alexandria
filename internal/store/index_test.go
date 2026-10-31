@@ -118,7 +118,7 @@ func TestActivationSwitchesRevisionWithoutMixingHistory(t *testing.T) {
 	if _, err := s.db.ExecContext(ctx, `INSERT INTO extraction_revisions(id,source_id,source_sha256,events_sha256,contract_version,engine_json,mode,status,adapter_sha256) SELECT 'new-revision',source_id,source_sha256,events_sha256,contract_version,engine_json,mode,status,adapter_sha256 FROM extraction_revisions WHERE id=?`, imported.ExtractionID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.db.ExecContext(ctx, `INSERT INTO document_units(extraction_id,unit_id,ordinal,text,locator_json) SELECT 'new-revision',unit_id,ordinal,'different revision',locator_json FROM document_units WHERE extraction_id=?`, imported.ExtractionID); err != nil {
+	if _, err := s.db.ExecContext(ctx, `INSERT INTO document_units(extraction_id,unit_id,ordinal,text,locator_json) SELECT 'new-revision',unit_id,ordinal,'different revision','{"kind":"pdf_page","page":1,"representation":"unit_text_utf8","start_byte":0,"end_byte":18}' FROM document_units WHERE extraction_id=?`, imported.ExtractionID); err != nil {
 		t.Fatal(err)
 	}
 	newChunks, err := s.Chunk(ctx, "new-revision")

@@ -60,3 +60,24 @@ func TestIndexCommandsRequireExistingDatabase(t *testing.T) {
 		}
 	}
 }
+
+func TestSearchCLIRejectsInvalidArgumentsAndMissingDatabase(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "missing.sqlite")
+	for _, tc := range []struct {
+		args []string
+		code int
+	}{
+		{[]string{"search", "--db", path, "--query", "palavra"}, 1},
+		{[]string{"search", "--db", path, "--query", "   "}, 2},
+		{[]string{"search", "--db", path, "--query", "palavra", "--limit", "0"}, 2},
+		{[]string{"store", "verify", "--db", path}, 1},
+	} {
+		var stdout, stderr bytes.Buffer
+		if code := run(tc.args, &stdout, &stderr); code != tc.code {
+			t.Fatalf("%v: código %d, stderr %s", tc.args, code, &stderr)
+		}
+	}
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatalf("banco criado implicitamente: %v", err)
+	}
+}
