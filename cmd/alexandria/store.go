@@ -15,7 +15,7 @@ import (
 )
 
 func runStore(args []string, stdout, stderr io.Writer) int {
-	if len(args) > 0 && (args[0] == "activate" || args[0] == "rebuild" || args[0] == "verify") {
+	if len(args) > 0 && (args[0] == "activate" || args[0] == "rebuild" || args[0] == "verify" || args[0] == "verify-fts") {
 		return runStoreIndex(args[0], args[1:], stdout, stderr)
 	}
 	if len(args) > 0 && args[0] == "chunk" {
@@ -25,7 +25,7 @@ func runStore(args []string, stdout, stderr io.Writer) int {
 		return runStoreImport(args[1:], stdout, stderr)
 	}
 	if len(args) == 0 || args[0] != "init" {
-		fmt.Fprintln(stderr, "Uso: alexandria store <init|import|chunk|activate|rebuild|verify> [opções]")
+		fmt.Fprintln(stderr, "Uso: alexandria store <init|import|chunk|activate|rebuild|verify|verify-fts> [opções]")
 		return 2
 	}
 	flags := flag.NewFlagSet("store init", flag.ContinueOnError)
@@ -92,6 +92,8 @@ func runStoreIndex(command string, args []string, stdout, stderr io.Writer) int 
 	var s *store.Store
 	if command == "verify" {
 		s, err = store.OpenReadOnly(ctx, *dbPath)
+	} else if command == "verify-fts" {
+		s, err = store.OpenExisting(ctx, *dbPath)
 	} else {
 		s, err = store.Init(ctx, *dbPath)
 	}
@@ -105,6 +107,8 @@ func runStoreIndex(command string, args []string, stdout, stderr io.Writer) int 
 		result, err = s.Activate(ctx, *source, *extraction, *profile)
 	} else if command == "rebuild" {
 		result, err = s.RebuildIndex(ctx)
+	} else if command == "verify-fts" {
+		result, err = s.VerifyFTS(ctx)
 	} else {
 		result, err = s.Verify(ctx)
 	}

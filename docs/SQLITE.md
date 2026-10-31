@@ -129,9 +129,13 @@ go run ./cmd/alexandria search --db data/alexandria.sqlite --query 'termos da co
 incompatíveis e não criam banco. Cada consulta confere na mesma transação o estado,
 as foreign keys, os fragmentos, os localizadores e a cópia textual do índice em
 relação ao canônico. A verificação percorre a projeção completa e pode ser lenta
-em acervos maiores. Ela não substitui a verificação interna dos segmentos FTS5
-por `integrity-check`; corrupção interna que preserve as linhas de conteúdo pode
-exigir diagnóstico e reconstrução adicionais.
+em acervos maiores. Ela não substitui a verificação interna dos segmentos FTS5.
+Execute `store verify-fts --db data/alexandria.sqlite` para verificar a projeção
+canônica e os segmentos internos. Esse comando exige acesso de escrita e uma
+transação, pois o SQLite expõe a verificação por um comando especial de inserção;
+a transação é revertida após a verificação. Ele não cria nem migra o banco e não
+é executado automaticamente a cada busca. A semântica está na
+[documentação oficial do SQLite](https://www.sqlite.org/fts5.html#the_integrity_check_command).
 
 Termos separados por espaço são tratados literalmente, com `AND` e escape da
 gramática FTS5; operadores não são interpretados como comandos. A tokenização
@@ -141,8 +145,8 @@ conhecida, checksum, revisão, unidade, fragmento, página física, intervalo em
 do texto extraído e diagnósticos da extração. `--source` filtra por fonte e `--json`
 oferece saída estruturada; consulta sem resultados retorna lista vazia ou mensagem
 legível. Offsets não são posições no PDF. O índice ausente ou divergente é erro,
-não uma busca sem resultados. A auditoria independente de #12 ainda não é incluída
-automaticamente nos diagnósticos exibidos.
+não uma busca sem resultados. A auditoria independente de #12 é validada no aceite,
+mas ainda não é incluída automaticamente nos diagnósticos de cada busca.
 
 Uma verificação operacional no banco privado cobriu nove fontes e 4.154 fragmentos;
 duas consultas comuns e uma sem correspondência produziram saídas idênticas em

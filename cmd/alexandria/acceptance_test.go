@@ -15,7 +15,7 @@ func TestAcceptanceRejectsMissingOffsetsAndDoesNotCreateDatabase(t *testing.T) {
 		t.Fatal(err)
 	}
 	var stdout, stderr bytes.Buffer
-	if code := run([]string{"acceptance", "--db", db, "--suite", suite}, &stdout, &stderr); code != 1 || !bytes.Contains(stderr.Bytes(), []byte("intervalo incompleto")) {
+	if code := run([]string{"acceptance", "--db", db, "--suite", suite, "--audit", "audit.json"}, &stdout, &stderr); code != 1 || !bytes.Contains(stderr.Bytes(), []byte("intervalo incompleto")) {
 		t.Fatalf("code %d, stderr %s", code, &stderr)
 	}
 	if _, err := os.Stat(db); !os.IsNotExist(err) {

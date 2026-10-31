@@ -37,6 +37,25 @@ func TestEvaluateAcceptanceScoresAndFreezesGold(t *testing.T) {
 	if err != nil || !report.Passed || report.Hits != 1 || report.ReferencesChecked != 1 || report.Cases[0].Rank != 1 || report.Cases[1].Rank != 0 {
 		t.Fatalf("relatório incorreto: %+v %v", report, err)
 	}
+	var events string
+	if err := s.db.QueryRowContext(ctx, `SELECT events_sha256 FROM extraction_revisions WHERE id=?`, imported.ExtractionID).Scan(&events); err != nil {
+		t.Fatal(err)
+	}
+	warning := "revisão necessária"
+	audit := QualityAudit{SchemaVersion: 1, Method: "comparação sintética", Samples: []QualitySample{{SourceID: source.ID, SourceSHA256: source.SHA256, ExtractionKey: imported.ExtractionID, EventsSHA256: events, Page: 1, TokenOrderSimilarity: .9, Warning: &warning}}, Diagnostics: map[string]int{"sample": 1}, KnownLimitations: []string{"limitação sintética"}}
+	withAudit, err := s.evaluateWithAudit(ctx, suite, 1, 2, 1, &audit)
+	if err != nil || withAudit.Audit == nil || withAudit.Audit.Warnings != 1 || len(withAudit.Audit.KnownLimitations) != 1 {
+		t.Fatalf("auditoria: %+v %v", withAudit.Audit, err)
+	}
+	audit.Samples[0].EventsSHA256 = "wrong"
+	if _, err := s.evaluateWithAudit(ctx, suite, 1, 2, 1, &audit); err == nil {
+		t.Fatal("auditoria de outra extração aceita")
+	}
+	audit.Samples[0].EventsSHA256 = events
+	audit.Diagnostics["sample"] = 0
+	if _, err := s.evaluateWithAudit(ctx, suite, 1, 2, 1, &audit); err == nil {
+		t.Fatal("contagem divergente de diagnósticos aceita")
+	}
 	again, err := s.evaluate(ctx, suite, 1, 2, 1)
 	if err != nil || !reflect.DeepEqual(report, again) {
 		t.Fatalf("repetição divergiu: %+v %v", again, err)

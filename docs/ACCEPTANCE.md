@@ -47,7 +47,8 @@ perguntas; a revisão precisa ser registrada separadamente.
 
 ```sh
 go run ./cmd/alexandria store verify --db data/alexandria.sqlite
-go run ./cmd/alexandria acceptance --db data/alexandria.sqlite --suite data/acceptance-suite.json > data/acceptance-report.json
+go run ./cmd/alexandria store verify-fts --db data/alexandria.sqlite
+go run ./cmd/alexandria acceptance --db data/alexandria.sqlite --suite data/acceptance-suite.json --audit data/extraction-acceptance-audit.json > data/acceptance-report.json
 ```
 
 O avaliador valida todos os gabaritos antes da primeira consulta, recusa fonte ou
@@ -59,15 +60,18 @@ Todos os resultados retornados são resolvidos e validados contra o canônico.
 
 O relatório registra digest do índice, digest semântico da suíte, versão SQLite,
 IDs dos fragmentos por consulta, posições, total de referências verificadas e o
-número de acertos. `passed` significa somente pelo menos 15 de 18 acertos com as
+número de acertos. A auditoria da #12 é obrigatória na CLI: suas amostras são
+conferidas contra as fontes, revisões, hashes de eventos e páginas ativas; as
+contagens de diagnósticos são comparadas ao banco. O relatório inclui digest da
+auditoria, método, avisos e limitações. Isso não implica resolução dos problemas
+apontados. `passed` significa somente pelo menos 15 de 18 acertos com as
 validações executadas; não conclui a issue nem o milestone. Uma execução válida
 abaixo da meta retorna código 1 e ainda produz o relatório. Entrada inválida ou
 erro de execução também retorna 1; argumentos inválidos retornam 2. Execute duas
 vezes com a mesma suíte e compare os relatórios antes de registrar evidência.
 
-A auditoria independente de qualidade de #12 e a verificação interna dos segmentos
-FTS5 permanecem pendentes no processo de aceite; a checagem atual compara a projeção
-armazenada ao canônico, como detalhado em [SQLite](SQLITE.md).
+A verificação interna dos segmentos FTS5 é uma operação separada e precisa ser
+executada antes do aceite; a busca e a avaliação não a executam automaticamente.
 
 ## Medição preliminar local
 
@@ -94,6 +98,7 @@ considerado ao revisar a qualidade da recuperação.
 
 O aceite **não está comprovado**: os gabaritos e a relevância dos resultados
 precisam de revisão independente, as diferenças de extração em páginas de índice
-precisam ser consideradas, e a auditoria de #12 deve ser incorporada. A medição também não
-resolve a verificação interna dos segmentos FTS5. Gabarito, relatórios e comparações
+precisam ser consideradas e os avisos da auditoria de #12 devem ser avaliados.
+Em execução posterior, `verify-fts` passou e duas avaliações com a auditoria da #12
+mantiveram o ranking: 15/18, com 34 amostras e um aviso específico. Gabarito, relatórios e comparações
 permanecem privados em `data/`; não foram publicados trechos nem hashes das fontes.

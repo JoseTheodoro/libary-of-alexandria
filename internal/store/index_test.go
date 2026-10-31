@@ -138,3 +138,35 @@ func TestActivationSwitchesRevisionWithoutMixingHistory(t *testing.T) {
 		t.Fatalf("histórico não preservado: %d %v", count, err)
 	}
 }
+
+func TestVerifyFTSDetectsBrokenInternalIndex(t *testing.T) {
+	ctx := context.Background()
+	source, artifact := syntheticArtifact(t)
+	s, err := Init(ctx, filepath.Join(t.TempDir(), "db.sqlite"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	imported, err := s.Import(ctx, source, artifact, 1<<20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	chunks, err := s.Chunk(ctx, imported.ExtractionID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := s.Activate(ctx, source.ID, imported.ExtractionID, chunks.ProfileID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.VerifyFTS(ctx)
+	if err != nil || got != want {
+		t.Fatalf("índice válido: %+v %v", got, err)
+	}
+	if _, err := s.db.ExecContext(ctx, `DELETE FROM fragment_fts_data WHERE id > 10`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.VerifyFTS(ctx); err == nil {
+		t.Fatal("corrupção dos segmentos FTS5 não detectada")
+	}
+}

@@ -44,6 +44,40 @@ type AcceptanceReport struct {
 	ReferencesChecked int                    `json:"references_checked"`
 	Passed            bool                   `json:"passed"`
 	Cases             []AcceptanceCaseResult `json:"cases"`
+	Audit             *QualityAuditSummary   `json:"quality_audit,omitempty"`
+}
+
+// QualityAudit is the private #12 sidecar, tied to extraction artifacts.
+type QualityAudit struct {
+	SchemaVersion    int             `json:"schema_version"`
+	Method           string          `json:"method"`
+	Samples          []QualitySample `json:"samples"`
+	Diagnostics      map[string]int  `json:"diagnostics"`
+	KnownLimitations []string        `json:"known_limitations"`
+}
+type QualitySample struct {
+	SourceID             string  `json:"source_id"`
+	SourceSHA256         string  `json:"source_sha256"`
+	ExtractionKey        string  `json:"extraction_key"`
+	EventsSHA256         string  `json:"events_sha256"`
+	Page                 int     `json:"page"`
+	TokenOrderSimilarity float64 `json:"token_order_similarity"`
+	Warning              *string `json:"warning"`
+}
+type QualityAuditSummary struct {
+	SHA256           string           `json:"sha256"`
+	Method           string           `json:"method"`
+	Samples          int              `json:"samples"`
+	Warnings         int              `json:"warnings"`
+	SampleWarnings   []QualityWarning `json:"sample_warnings"`
+	Diagnostics      map[string]int   `json:"diagnostics"`
+	KnownLimitations []string         `json:"known_limitations"`
+}
+
+type QualityWarning struct {
+	SourceID string `json:"source_id"`
+	Page     int    `json:"page"`
+	Message  string `json:"message"`
 }
 
 // EvaluateAcceptance enforces the M1 gate of nine sources, two queries each,
@@ -52,7 +86,16 @@ func (s *Store) EvaluateAcceptance(ctx context.Context, suite AcceptanceSuite) (
 	return s.evaluate(ctx, suite, 9, 2, 15)
 }
 
+// EvaluateAcceptanceWithAudit also validates and records the #12 audit sidecar.
+func (s *Store) EvaluateAcceptanceWithAudit(ctx context.Context, suite AcceptanceSuite, audit QualityAudit) (AcceptanceReport, error) {
+	return s.evaluateWithAudit(ctx, suite, 9, 2, 15, &audit)
+}
+
 func (s *Store) evaluate(ctx context.Context, suite AcceptanceSuite, sourceCount, perSource, minimum int) (AcceptanceReport, error) {
+	return s.evaluateWithAudit(ctx, suite, sourceCount, perSource, minimum, nil)
+}
+
+func (s *Store) evaluateWithAudit(ctx context.Context, suite AcceptanceSuite, sourceCount, perSource, minimum int, audit *QualityAudit) (AcceptanceReport, error) {
 	report := AcceptanceReport{SchemaVersion: 1, Total: len(suite.Cases), Cases: []AcceptanceCaseResult{}}
 	if suite.SchemaVersion != 1 || len(suite.Cases) != sourceCount*perSource || strings.TrimSpace(suite.IndexDigest) == "" {
 		return report, fmt.Errorf("suíte de aceite incompleta ou versão inválida")
@@ -77,6 +120,13 @@ func (s *Store) evaluate(ctx context.Context, suite AcceptanceSuite, sourceCount
 	report.IndexDigest = index.Digest
 	if err := tx.QueryRowContext(ctx, `SELECT sqlite_version()`).Scan(&report.SQLiteVersion); err != nil {
 		return report, err
+	}
+	if audit != nil {
+		summary, err := validateQualityAudit(ctx, tx, *audit, sourceCount)
+		if err != nil {
+			return report, err
+		}
+		report.Audit = &summary
 	}
 	seen := map[string]bool{}
 	counts := map[string]int{}

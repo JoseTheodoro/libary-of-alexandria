@@ -29,6 +29,15 @@ type Store struct{ db *sql.DB }
 
 // OpenReadOnly refuses absent or incompatible databases and never runs migrations.
 func OpenReadOnly(ctx context.Context, path string) (*Store, error) {
+	return openExisting(ctx, path, "ro")
+}
+
+// OpenExisting permits explicit maintenance without creating or migrating a database.
+func OpenExisting(ctx context.Context, path string) (*Store, error) {
+	return openExisting(ctx, path, "rw")
+}
+
+func openExisting(ctx context.Context, path, mode string) (*Store, error) {
 	if strings.TrimSpace(path) == "" || path == ":memory:" {
 		return nil, fmt.Errorf("informe um caminho de banco local em disco")
 	}
@@ -37,7 +46,7 @@ func OpenReadOnly(ctx context.Context, path string) (*Store, error) {
 		return nil, err
 	}
 	query := url.Values{}
-	query.Set("mode", "ro")
+	query.Set("mode", mode)
 	query.Add("_pragma", "foreign_keys(1)")
 	query.Add("_pragma", "busy_timeout(5000)")
 	db, err := sql.Open("sqlite", (&url.URL{Scheme: "file", Path: abs, RawQuery: query.Encode()}).String())

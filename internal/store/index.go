@@ -62,6 +62,27 @@ func (s *Store) RebuildIndex(ctx context.Context) (IndexResult, error) {
 	return result, nil
 }
 
+// VerifyFTS checks both the canonical projection and SQLite's internal FTS index.
+// The SQLite check requires a write transaction; all changes are rolled back.
+func (s *Store) VerifyFTS(ctx context.Context) (IndexResult, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return IndexResult{}, err
+	}
+	defer tx.Rollback()
+	result, err := inspectIndex(ctx, tx, false)
+	if err != nil {
+		return IndexResult{}, err
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO fragment_fts(fragment_fts) VALUES('integrity-check')`); err != nil {
+		return IndexResult{}, fmt.Errorf("integridade interna FTS5: %w", err)
+	}
+	if err := tx.Rollback(); err != nil {
+		return IndexResult{}, err
+	}
+	return result, nil
+}
+
 type activeDocument struct{ source, extraction, profile, title, config, status string }
 
 func rebuildIndex(ctx context.Context, tx *sql.Tx) (IndexResult, error) {
