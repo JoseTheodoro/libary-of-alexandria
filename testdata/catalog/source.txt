@@ -1,0 +1,8 @@
+Fonte sintética para testes da Library of Alexandria.
+Synthetic technical source — não representa um livro real.
+Permissão: este conteúdo sintético pode ser usado, copiado e modificado nos testes.
+
+Preservar o identificador ReadFile e o código abaixo:
+func ReadFile() string {
+	return "ação — evidence"
+}

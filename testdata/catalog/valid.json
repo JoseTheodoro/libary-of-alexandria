@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "sources": [
+    {
+      "id": "synthetic-example",
+      "title": "Fonte sintética para testes — Synthetic technical source",
+      "authors": ["Library of Alexandria — fixture sintética"],
+      "edition": null,
+      "format": "txt",
+      "sha256": "244e3c20c29d466b849179a6e9af21e85489d5dd07c415fd6dd4dc7800409b66",
+      "path": "source.txt",
+      "permission": {
+        "status": "authorized",
+        "basis": "Conteúdo sintético criado para testes; uso, cópia e modificação permitidos no próprio arquivo.",
+        "reference": "source.txt, linha 3"
+      }
+    }
+  ]
+}

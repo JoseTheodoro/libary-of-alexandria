@@ -18,9 +18,11 @@ e outros agentes que nele trabalhem.
 - Trabalhe em uma issue por vez. Verifique o estado do Git e preserve alterações
   existentes do usuário. Reconcilie divergências entre issue e documentação antes
   de implementar requisitos afetados.
-- Este bootstrap não autoriza implementar
-  [M1-01](https://github.com/JoseTheodoro/libary-of-alexandria/issues/11).
-  A implementação funcional depende de uma tarefa posterior explicitamente solicitada.
+- A implementação de M1 foi autorizada após o bootstrap. M1-01 (#11) passou na
+  [revisão técnica local](docs/reviews/M1-01.md), com aceite das nove fontes reais.
+  A próxima história é M1-02 (#12); consulte seu status e o
+  [plano de M1](docs/milestones/M1.md) antes de avançar. Não confunda Done da
+  história com conclusão do milestone; confira o estado do código na branch usada.
 
 ## Engenharia e escopo
 
@@ -73,6 +75,10 @@ e outros agentes que nele trabalhem.
   lacunas, ambiguidades e falhas sem inventar informações bibliográficas ou referências.
 - Respeite licenças e permissões; não versione livros nem conteúdo extraído protegido.
   Use fontes sintéticas ou com licença adequada nos testes e revise o que será incluído.
+- Para o acervo privado atual de nove livros, o responsável declarou uso não
+  comercial, apenas estudo e pesquisa. Preserve essa restrição e sua referência em
+  `data/permissions-declaration.json`; não a apresente como licença padronizada ou
+  autorização de redistribuição. Novas fontes exigem seus próprios registros.
 - Nunca invente resultados de benchmarks; diferencie metas, medições e hipóteses.
 - Recomendações de livros não são políticas corporativas automaticamente. Propostas
   exigem revisão e aprovação humana antes de se tornarem regras obrigatórias.
